@@ -25,13 +25,14 @@ jobs:
       - name: Build
         run: swift build -c release
 
-      # 4. Create .app bundle from the executable
+      # 4. Create .app bundle and ad-hoc sign
       - name: Package
         run: |
           APP="CHDMAN.app/Contents"
           mkdir -p "$APP/MacOS" "$APP/Resources"
           cp .build/release/CHDMAN "$APP/MacOS/CHDMAN"
           cp Sources/CHDMAN/Resources/Info.plist "$APP/Info.plist"
+          codesign --force --sign - --deep CHDMAN.app
           ditto -c -k --keepParent CHDMAN.app CHDMAN.app.zip
 
       # 5. Create a GitHub Release with the zip attached
