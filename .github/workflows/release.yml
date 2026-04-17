@@ -18,22 +18,18 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
 
-      # 3. Build the app using xcodebuild
+      # 3. Build the executable
       - name: Build
-        run: |
-          xcodebuild \
-            -scheme CHDMAN \
-            -configuration Release \
-            -derivedDataPath build \
-            -destination 'platform=macOS' \
-            build
+        run: swift build -c release
 
-      # 4. Find and zip the .app bundle
+      # 4. Create .app bundle from the executable
       - name: Package
         run: |
-          APP_PATH=$(find build -name "CHDMAN.app" -type d | head -1)
-          echo "Found app at: $APP_PATH"
-          ditto -c -k --keepParent "$APP_PATH" CHDMAN.app.zip
+          APP="CHDMAN.app/Contents"
+          mkdir -p "$APP/MacOS" "$APP/Resources"
+          cp .build/release/CHDMAN "$APP/MacOS/CHDMAN"
+          cp Sources/CHDMAN/Resources/Info.plist "$APP/Info.plist"
+          ditto -c -k --keepParent CHDMAN.app CHDMAN.app.zip
 
       # 5. Create a GitHub Release with the zip attached
       - name: Create Release
