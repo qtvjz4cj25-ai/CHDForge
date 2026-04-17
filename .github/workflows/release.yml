@@ -33,8 +33,8 @@ jobs:
           cp .build/release/CHDMAN "$APP/MacOS/CHDForge"
           cp Sources/CHDMAN/Resources/Info.plist "$APP/Info.plist"
           cp Sources/CHDMAN/Resources/AppIcon.icns "$APP/Resources/AppIcon.icns"
-          # Copy the SwiftPM resource bundle so Bundle.module works at runtime
-          cp -R .build/release/CHDMAN_CHDMAN.bundle "$APP/Resources/"
+          # Copy resource bundle next to executable so Bundle.module finds it
+          cp -R .build/release/CHDMAN_CHDMAN.bundle "$APP/MacOS/"
           codesign --force --sign - --deep CHDForge.app
           ditto -c -k --keepParent CHDForge.app CHDForge.app.zip
 
