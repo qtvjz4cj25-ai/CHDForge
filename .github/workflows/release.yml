@@ -33,9 +33,11 @@ jobs:
           cp .build/release/CHDMAN "$APP/MacOS/CHDForge"
           cp Sources/CHDMAN/Resources/Info.plist "$APP/Info.plist"
           cp Sources/CHDMAN/Resources/AppIcon.icns "$APP/Resources/AppIcon.icns"
-          # Copy resource bundle next to executable so Bundle.module finds it
-          cp -R .build/release/CHDMAN_CHDMAN.bundle "$APP/MacOS/"
-          codesign --force --sign - --deep CHDForge.app
+          # Copy resource bundle to Resources
+          cp -R .build/release/CHDMAN_CHDMAN.bundle "$APP/Resources/"
+          # Sign the resource bundle first, then the app
+          codesign --force --sign - "$APP/Resources/CHDMAN_CHDMAN.bundle"
+          codesign --force --sign - CHDForge.app
           ditto -c -k --keepParent CHDForge.app CHDForge.app.zip
 
       # 5. Create a GitHub Release with the zip attached

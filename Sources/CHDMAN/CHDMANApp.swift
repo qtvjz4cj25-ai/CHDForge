@@ -35,15 +35,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private static func loadAppIcon() -> NSImage? {
-        // Try the SwiftPM resource bundle next to the executable
-        let execURL = Bundle.main.executableURL?.deletingLastPathComponent()
-        if let execURL,
-           let bundle = Bundle(url: execURL.appendingPathComponent("CHDMAN_CHDMAN.bundle")),
-           let url = bundle.url(forResource: "AppIcon", withExtension: "icns"),
-           let icon = NSImage(contentsOf: url) {
-            return icon
+        let bundleName = "CHDMAN_CHDMAN.bundle"
+        // Search for the resource bundle in common locations
+        let candidates = [
+            // Next to executable (swift build / Xcode debug)
+            Bundle.main.executableURL?.deletingLastPathComponent(),
+            // In Resources (distributed .app)
+            Bundle.main.resourceURL
+        ]
+        for candidate in candidates {
+            guard let dir = candidate else { continue }
+            if let bundle = Bundle(url: dir.appendingPathComponent(bundleName)),
+               let url = bundle.url(forResource: "AppIcon", withExtension: "icns"),
+               let icon = NSImage(contentsOf: url) {
+                return icon
+            }
         }
-        // Fall back to main bundle Resources (distributed .app)
+        // Direct lookup in main bundle Resources
         if let url = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
            let icon = NSImage(contentsOf: url) {
             return icon
