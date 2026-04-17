@@ -36,6 +36,16 @@ brew install rom-tools
 
 **Option 2 — MAME**: Download from [mamedev.org](https://www.mamedev.org/release.html), which includes chdman. Then set the path in the app's Settings.
 
+## Running unsigned apps on macOS
+
+Since CHDForge is not distributed through the Mac App Store or signed with an Apple Developer ID, macOS Gatekeeper will block it the first time you try to open it. To allow it:
+
+1. **Right-click** (or Control-click) the app and select **Open**
+2. Click **Open** in the dialog that appears
+3. You only need to do this once — macOS will remember your choice
+
+Alternatively, go to **System Settings → Privacy & Security**, scroll down, and click **Open Anyway** next to the blocked app message.
+
 ## Building
 
 Open the project in Xcode or build from the command line:
