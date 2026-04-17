@@ -28,16 +28,19 @@ jobs:
       # 4. Create .app bundle and ad-hoc sign
       - name: Package
         run: |
-          APP="CHDMAN.app/Contents"
+          APP="CHDForge.app/Contents"
           mkdir -p "$APP/MacOS" "$APP/Resources"
-          cp .build/release/CHDMAN "$APP/MacOS/CHDMAN"
+          cp .build/release/CHDMAN "$APP/MacOS/CHDForge"
           cp Sources/CHDMAN/Resources/Info.plist "$APP/Info.plist"
-          codesign --force --sign - --deep CHDMAN.app
-          ditto -c -k --keepParent CHDMAN.app CHDMAN.app.zip
+          cp Sources/CHDMAN/Resources/AppIcon.icns "$APP/Resources/AppIcon.icns"
+          # Copy the SwiftPM resource bundle so Bundle.module works at runtime
+          cp -R .build/release/CHDMAN_CHDMAN.bundle "$APP/Resources/"
+          codesign --force --sign - --deep CHDForge.app
+          ditto -c -k --keepParent CHDForge.app CHDForge.app.zip
 
       # 5. Create a GitHub Release with the zip attached
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: CHDMAN.app.zip
+          files: CHDForge.app.zip
           generate_release_notes: true

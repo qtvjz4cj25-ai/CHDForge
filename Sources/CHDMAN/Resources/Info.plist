@@ -2,8 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleExecutable</key>
+    <string>CHDForge</string>
     <key>CFBundleIdentifier</key>
-    <string>com.chdman.app</string>
+    <string>com.chdforge.app</string>
     <key>CFBundleName</key>
     <string>CHDForge</string>
     <key>CFBundleIconFile</key>
