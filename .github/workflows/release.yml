@@ -1,0 +1,43 @@
+name: Build and Release
+
+# Triggers when you push a tag like v1.0, v2.1, etc.
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      # 1. Check out the code
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 2. Select Xcode version
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
+
+      # 3. Build the app using xcodebuild
+      - name: Build
+        run: |
+          xcodebuild \
+            -scheme CHDMAN \
+            -configuration Release \
+            -derivedDataPath build \
+            -destination 'platform=macOS' \
+            build
+
+      # 4. Find and zip the .app bundle
+      - name: Package
+        run: |
+          APP_PATH=$(find build -name "CHDMAN.app" -type d | head -1)
+          echo "Found app at: $APP_PATH"
+          ditto -c -k --keepParent "$APP_PATH" CHDMAN.app.zip
+
+      # 5. Create a GitHub Release with the zip attached
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: CHDMAN.app.zip
+          generate_release_notes: true
