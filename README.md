@@ -71,6 +71,12 @@ Open the project in Xcode or build from the command line:
 swift build
 ```
 
+## Support
+
+If you find CHDForge useful, consider buying me a coffee:
+
+[![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/ninjapiraterobo)
+
 ## License
 
 MIT
