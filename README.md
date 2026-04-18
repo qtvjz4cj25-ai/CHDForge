@@ -14,7 +14,7 @@ This project was vibe coded with [Claude](https://claude.ai) (Anthropic's AI ass
 - **Compression presets** — Fast, Balanced, or Smallest to trade speed for file size
 - Folder scanning with recursive file discovery
 - Drag and drop folder support
-- Parallel conversions with configurable concurrency
+- Parallel conversions with configurable concurrency (1–8 simultaneous jobs)
 - Pause, resume, and cancel conversions
 - Real-time progress tracking with ETA
 - Per-job and global logging with log file export
