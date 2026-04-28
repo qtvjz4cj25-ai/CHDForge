@@ -1,64 +1,48 @@
 import Foundation
 
-enum ChdmanLocatorError: LocalizedError {
+enum MaxcsoLocatorError: LocalizedError {
     case notFound
 
     var errorDescription: String? {
-        switch self {
-        case .notFound:
-            return "chdman not found. Install it with: brew install rom-tools"
-        }
+        "maxcso not found. Download it from GitHub: github.com/unknownbrackets/maxcso"
     }
 }
 
-/// Finds the chdman executable and interrogates it for supported subcommands.
-struct ChdmanLocator {
+/// Finds the maxcso executable for CSO compression/decompression.
+struct MaxcsoLocator {
 
     private let knownPaths = [
-        "/opt/homebrew/bin/chdman",
-        "/usr/local/bin/chdman"
+        "/opt/homebrew/bin/maxcso",
+        "/usr/local/bin/maxcso"
     ]
 
     // MARK: - Locate
 
     func locate(customPath: String?) async throws -> String {
-        // 1. Custom path wins if it exists and is executable.
         if let custom = customPath, !custom.isEmpty {
             if isExecutable(at: custom) { return custom }
         }
 
-        // 2. Known Homebrew locations.
         for path in knownPaths {
             if isExecutable(at: path) { return path }
         }
 
-        // 3. PATH lookup via `which`.
-        if let path = await which("chdman") {
+        if let path = await which("maxcso") {
             return path
         }
 
-        throw ChdmanLocatorError.notFound
+        throw MaxcsoLocatorError.notFound
     }
 
-    // MARK: - Capability detection
+    // MARK: - Verify
 
-    func detectCapabilities(chdmanPath: String) async throws -> ChdmanCapabilities {
-        // Run `chdman` with no arguments; it prints usage to stdout or stderr.
-        let result = try await runQuiet(executablePath: chdmanPath, arguments: [])
+    func verify(path: String) async -> Bool {
+        // maxcso with no args prints usage to stderr and exits non-zero.
+        guard let result = try? await runQuiet(executablePath: path, arguments: []) else {
+            return false
+        }
         let combined = result.stdout + result.stderr
-
-        let hasCreateCD   = combined.range(of: "createcd",   options: .caseInsensitive) != nil
-        let hasCreateDVD  = combined.range(of: "createdvd",  options: .caseInsensitive) != nil
-        let hasExtractCD  = combined.range(of: "extractcd",  options: .caseInsensitive) != nil
-        let hasExtractDVD = combined.range(of: "extractdvd", options: .caseInsensitive) != nil
-
-        return ChdmanCapabilities(
-            hasCreateCD:   hasCreateCD,
-            hasCreateDVD:  hasCreateDVD,
-            hasExtractCD:  hasExtractCD,
-            hasExtractDVD: hasExtractDVD,
-            rawHelpText:   combined
-        )
+        return combined.range(of: "cso", options: .caseInsensitive) != nil
     }
 
     // MARK: - Helpers
@@ -75,9 +59,7 @@ struct ChdmanLocator {
         return path.isEmpty ? nil : path
     }
 
-    /// Minimal runner used only for quick capability queries.
-    /// Reads pipes before waiting for exit to avoid deadlock when the pipe
-    /// buffer fills before the process terminates.
+    /// Reads pipes before waiting for exit to avoid deadlock.
     private func runQuiet(executablePath: String, arguments: [String]) async throws
         -> (exitCode: Int32, stdout: String, stderr: String)
     {

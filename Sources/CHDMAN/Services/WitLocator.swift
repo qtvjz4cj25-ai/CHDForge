@@ -1,64 +1,58 @@
 import Foundation
 
-enum ChdmanLocatorError: LocalizedError {
+enum WitLocatorError: LocalizedError {
     case notFound
 
     var errorDescription: String? {
-        switch self {
-        case .notFound:
-            return "chdman not found. Install it with: brew install rom-tools"
-        }
+        "wit not found. Download Wiimms ISO Tools from wit.wiimm.de or install via Homebrew."
     }
 }
 
-/// Finds the chdman executable and interrogates it for supported subcommands.
-struct ChdmanLocator {
+/// Finds the wit (Wiimms ISO Tool) executable for Wii/GameCube ISO management.
+struct WitLocator {
 
     private let knownPaths = [
-        "/opt/homebrew/bin/chdman",
-        "/usr/local/bin/chdman"
+        "/opt/homebrew/bin/wit",
+        "/usr/local/bin/wit"
     ]
 
     // MARK: - Locate
 
     func locate(customPath: String?) async throws -> String {
-        // 1. Custom path wins if it exists and is executable.
         if let custom = customPath, !custom.isEmpty {
             if isExecutable(at: custom) { return custom }
         }
 
-        // 2. Known Homebrew locations.
         for path in knownPaths {
             if isExecutable(at: path) { return path }
         }
 
-        // 3. PATH lookup via `which`.
-        if let path = await which("chdman") {
+        if let path = await which("wit") {
             return path
         }
 
-        throw ChdmanLocatorError.notFound
+        throw WitLocatorError.notFound
     }
 
-    // MARK: - Capability detection
+    // MARK: - Verify
 
-    func detectCapabilities(chdmanPath: String) async throws -> ChdmanCapabilities {
-        // Run `chdman` with no arguments; it prints usage to stdout or stderr.
-        let result = try await runQuiet(executablePath: chdmanPath, arguments: [])
-        let combined = result.stdout + result.stderr
-
-        let hasCreateCD   = combined.range(of: "createcd",   options: .caseInsensitive) != nil
-        let hasCreateDVD  = combined.range(of: "createdvd",  options: .caseInsensitive) != nil
-        let hasExtractCD  = combined.range(of: "extractcd",  options: .caseInsensitive) != nil
-        let hasExtractDVD = combined.range(of: "extractdvd", options: .caseInsensitive) != nil
-
-        return ChdmanCapabilities(
-            hasCreateCD:   hasCreateCD,
-            hasCreateDVD:  hasCreateDVD,
-            hasExtractCD:  hasExtractCD,
-            hasExtractDVD: hasExtractDVD,
-            rawHelpText:   combined
-        )
+    func verify(path: String) async -> Bool {
+        // Try `wit VERSION` (uppercase subcommand) first, then `wit version`,
+        // then no args. If the binary exists and runs at all, accept it —
+        // macOS quarantine can cause the process to silently fail even when
+        // the binary is valid, so we accept any output containing "wit".
+        for args in [["VERSION"], ["version"], ["--version"]] {
+            guard let result = try? await runQuiet(executablePath: path, arguments: args) else {
+                continue
+            }
+            let combined = result.stdout + result.stderr
+            if combined.range(of: "wit", options: .caseInsensitive) != nil {
+                return true
+            }
+        }
+        // Last resort: if the file is executable, assume it's valid.
+        // The user can correct the path in Settings if it's wrong.
+        return isExecutable(at: path)
     }
 
     // MARK: - Helpers
@@ -75,9 +69,6 @@ struct ChdmanLocator {
         return path.isEmpty ? nil : path
     }
 
-    /// Minimal runner used only for quick capability queries.
-    /// Reads pipes before waiting for exit to avoid deadlock when the pipe
-    /// buffer fills before the process terminates.
     private func runQuiet(executablePath: String, arguments: [String]) async throws
         -> (exitCode: Int32, stdout: String, stderr: String)
     {

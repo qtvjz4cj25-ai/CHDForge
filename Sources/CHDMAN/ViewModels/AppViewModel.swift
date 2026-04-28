@@ -8,6 +8,7 @@ final class AppViewModel: ObservableObject {
     // MARK: - UI state
 
     @Published var selectedFolder: URL?
+    @Published var selectedTool: ToolKind = .chdman
     @Published var appMode: AppMode = .create
     @Published var isRecursive: Bool = true
     @Published var jobs: [ConversionJob] = []
@@ -22,11 +23,43 @@ final class AppViewModel: ObservableObject {
     @Published var showChdmanAlert: Bool = false
     @Published var chdmanAlertMessage: String = ""
     @Published var chdmanMissing: Bool = false
+    @Published var showDolphinToolAlert: Bool = false
+    @Published var dolphinToolAlertMessage: String = ""
+    @Published var dolphinToolMissing: Bool = false
+    @Published var showMaxcsoAlert: Bool = false
+    @Published var maxcsoAlertMessage: String = ""
+    @Published var maxcsoMissing: Bool = false
+    @Published var showNszAlert: Bool = false
+    @Published var nszAlertMessage: String = ""
+    @Published var nszMissing: Bool = false
+    @Published var showSevenZipAlert: Bool = false
+    @Published var sevenZipAlertMessage: String = ""
+    @Published var sevenZipMissing: Bool = false
+    @Published var showWitAlert: Bool = false
+    @Published var witAlertMessage: String = ""
+    @Published var witMissing: Bool = false
+    @Published var showRepackinatorAlert: Bool = false
+    @Published var repackinatorAlertMessage: String = ""
+    @Published var repackinatorMissing: Bool = false
     @Published var chdmanCapabilities: ChdmanCapabilities?
 
     // MARK: - Persisted settings
 
+    @AppStorage("hasCompletedSetup") var hasCompletedSetup: Bool = false
+    @Published var showSetupWizard: Bool = false
+    @Published var showArtworkScraper: Bool = false
+
+    // MARK: - ScreenScraper credentials
+    @AppStorage("ssUsername") var ssUsername: String = ""
+    @AppStorage("ssPassword") var ssPassword: String = ""
+
     @AppStorage("customChdmanPath") var customChdmanPath: String = ""
+    @AppStorage("customDolphinToolPath") var customDolphinToolPath: String = ""
+    @AppStorage("customMaxcsoPath") var customMaxcsoPath: String = ""
+    @AppStorage("customNszPath") var customNszPath: String = ""
+    @AppStorage("customSevenZipPath") var customSevenZipPath: String = ""
+    @AppStorage("customWitPath") var customWitPath: String = ""
+    @AppStorage("customRepackinatorPath") var customRepackinatorPath: String = ""
     @AppStorage("deleteSourceAfterConversion") var deleteSourceAfterConversion: Bool = false
     @AppStorage("notifyOnCompletion") var notifyOnCompletion: Bool = true
     @AppStorage("compressionPreset") private var compressionPresetRawValue: String = CompressionPreset.balanced.rawValue
@@ -86,25 +119,117 @@ final class AppViewModel: ObservableObject {
 
     private let scanner  = FolderScanner()
     private let locator  = ChdmanLocator()
+    private let dolphinToolLocator = DolphinToolLocator()
+    private let maxcsoLocator = MaxcsoLocator()
+    private let nszLocator = NszLocator()
+    private let sevenZipLocator = SevenZipLocator()
+    private let witLocator = WitLocator()
+    private let repackinatorLocator = RepackinatorLocator()
     private let logStore = LogStore()
     private let maxGlobalLogCharacters = 200_000
 
-    private var engine: ConversionEngine?
+    private var engine: BatchEngine?
     private var conversionTask: Task<Void, Never>?
     private var currentRunID: UUID?
     private var currentRunWasCancelled = false
 
     // MARK: - Startup check
 
-    func checkChdmanAvailability() async {
-        do {
-            _ = try await locator.locate(
-                customPath: customChdmanPath.isEmpty ? nil : customChdmanPath
-            )
-            chdmanMissing = false
-        } catch {
-            chdmanMissing = true
+    func checkSelectedToolAvailability() async {
+        // Show setup wizard on first launch
+        if !hasCompletedSetup {
+            showSetupWizard = true
         }
+
+        // Reset all missing flags, then check the selected one.
+        chdmanMissing = false
+        dolphinToolMissing = false
+        maxcsoMissing = false
+        nszMissing = false
+        sevenZipMissing = false
+        witMissing = false
+        repackinatorMissing = false
+
+        switch selectedTool {
+        case .chdman:
+            do {
+                _ = try await locator.locate(
+                    customPath: customChdmanPath.isEmpty ? nil : customChdmanPath
+                )
+            } catch {
+                chdmanMissing = true
+            }
+        case .dolphinTool:
+            do {
+                let path = try await dolphinToolLocator.locate(
+                    customPath: customDolphinToolPath.isEmpty ? nil : customDolphinToolPath
+                )
+                let isValid = await dolphinToolLocator.verify(path: path)
+                dolphinToolMissing = !isValid
+            } catch {
+                dolphinToolMissing = true
+            }
+        case .maxcso:
+            do {
+                let path = try await maxcsoLocator.locate(
+                    customPath: customMaxcsoPath.isEmpty ? nil : customMaxcsoPath
+                )
+                let isValid = await maxcsoLocator.verify(path: path)
+                maxcsoMissing = !isValid
+            } catch {
+                maxcsoMissing = true
+            }
+        case .nsz:
+            do {
+                let path = try await nszLocator.locate(
+                    customPath: customNszPath.isEmpty ? nil : customNszPath
+                )
+                let isValid = await nszLocator.verify(path: path)
+                nszMissing = !isValid
+            } catch {
+                nszMissing = true
+            }
+        case .sevenZip:
+            do {
+                let path = try await sevenZipLocator.locate(
+                    customPath: customSevenZipPath.isEmpty ? nil : customSevenZipPath
+                )
+                let isValid = await sevenZipLocator.verify(path: path)
+                sevenZipMissing = !isValid
+            } catch {
+                sevenZipMissing = true
+            }
+        case .wit:
+            do {
+                let path = try await witLocator.locate(
+                    customPath: customWitPath.isEmpty ? nil : customWitPath
+                )
+                let isValid = await witLocator.verify(path: path)
+                witMissing = !isValid
+            } catch {
+                witMissing = true
+            }
+        case .repackinator:
+            do {
+                let path = try await repackinatorLocator.locate(
+                    customPath: customRepackinatorPath.isEmpty ? nil : customRepackinatorPath
+                )
+                let isValid = await repackinatorLocator.verify(path: path)
+                repackinatorMissing = !isValid
+            } catch {
+                repackinatorMissing = true
+            }
+        }
+    }
+
+    func handleToolSelectionChange() async {
+        chdmanCapabilities = nil
+        clearList()
+        // 7zip only supports extract mode
+        if !selectedTool.supportsCreate && appMode == .create {
+            appMode = .extract
+        }
+        await checkSelectedToolAvailability()
     }
 
     // MARK: - Folder picker
@@ -114,7 +239,7 @@ final class AppViewModel: ObservableObject {
         panel.canChooseFiles        = false
         panel.canChooseDirectories  = true
         panel.allowsMultipleSelection = false
-        panel.message = "Select a folder to scan for disc images"
+        panel.message = "Select a folder to scan for \(scanTargetDescription())"
         panel.prompt  = "Select"
         if panel.runModal() == .OK {
             selectedFolder = panel.url
@@ -128,10 +253,15 @@ final class AppViewModel: ObservableObject {
         isScanning = true
         defer { isScanning = false }
 
-        let discovered = await scanner.scan(folder: folder, recursive: isRecursive, mode: appMode)
+        let discovered = await scanner.scan(
+            folder: folder,
+            recursive: isRecursive,
+            tool: selectedTool,
+            mode: appMode
+        )
         jobs = discovered
 
-        let modeLabel = appMode == .create ? "disc images" : "CHD files"
+        let modeLabel = scanTargetDescription()
         let msg = "[\(timestamp())] Scan complete — \(discovered.count) \(modeLabel) found in \(folder.path)"
         appendGlobalLog(msg)
         Task { await logStore.appendGlobal(msg) }
@@ -148,55 +278,303 @@ final class AppViewModel: ObservableObject {
     // MARK: - Start conversion
 
     func startConversion() async {
-        // Locate chdman
-        let chdmanPath: String
-        do {
-            chdmanPath = try await locator.locate(
-                customPath: customChdmanPath.isEmpty ? nil : customChdmanPath
-            )
-        } catch {
-            chdmanAlertMessage =
-                "\(error.localizedDescription)\n\nInstall chdman with:\n    brew install rom-tools"
-            showChdmanAlert = true
-            return
-        }
-
-        // Detect capabilities
-        let caps: ChdmanCapabilities
-        do {
-            caps = try await locator.detectCapabilities(chdmanPath: chdmanPath)
-        } catch {
-            chdmanAlertMessage =
-                "Failed to detect chdman capabilities: \(error.localizedDescription)"
-            showChdmanAlert = true
-            return
-        }
-        chdmanCapabilities = caps
-
-        let capLine = "[\(timestamp())] chdman: \(chdmanPath) | createcd=\(caps.hasCreateCD) createdvd=\(caps.hasCreateDVD) extractcd=\(caps.hasExtractCD) extractdvd=\(caps.hasExtractDVD)"
-        appendGlobalLog(capLine)
-
         let concurrency = min(parallelJobs, ProcessInfo.processInfo.activeProcessorCount)
-        let startMsg = "[\(timestamp())] Starting conversion — concurrency=\(concurrency) preset=\(compressionPreset.title)"
+        let engineToRun: BatchEngine
+
+        switch selectedTool {
+        case .chdman:
+            let chdmanPath: String
+            do {
+                chdmanPath = try await locator.locate(
+                    customPath: customChdmanPath.isEmpty ? nil : customChdmanPath
+                )
+            } catch {
+                chdmanAlertMessage =
+                    "\(error.localizedDescription)\n\nInstall chdman with:\n    brew install rom-tools"
+                showChdmanAlert = true
+                return
+            }
+
+            let caps: ChdmanCapabilities
+            do {
+                caps = try await locator.detectCapabilities(chdmanPath: chdmanPath)
+            } catch {
+                chdmanAlertMessage =
+                    "Failed to detect chdman capabilities: \(error.localizedDescription)"
+                showChdmanAlert = true
+                return
+            }
+
+            chdmanCapabilities = caps
+            let capLine = "[\(timestamp())] chdman: \(chdmanPath) | createcd=\(caps.hasCreateCD) createdvd=\(caps.hasCreateDVD) extractcd=\(caps.hasExtractCD) extractdvd=\(caps.hasExtractDVD)"
+            appendGlobalLog(capLine)
+            Task { await logStore.appendGlobal(capLine) }
+
+            let eng = ConversionEngine(
+                chdmanPath: chdmanPath,
+                capabilities: caps,
+                compressionPreset: compressionPreset,
+                concurrency: concurrency,
+                jobs: jobs,
+                logStore: logStore,
+                deleteSource: deleteSourceAfterConversion
+            )
+            eng.onLogLine = { [weak self] line in
+                Task { @MainActor [weak self] in
+                    self?.appendGlobalLog(line)
+                }
+            }
+            engineToRun = eng
+
+        case .dolphinTool:
+            let dolphinToolPath: String
+            do {
+                dolphinToolPath = try await dolphinToolLocator.locate(
+                    customPath: customDolphinToolPath.isEmpty ? nil : customDolphinToolPath
+                )
+            } catch {
+                dolphinToolAlertMessage = error.localizedDescription
+                showDolphinToolAlert = true
+                return
+            }
+
+            guard await dolphinToolLocator.verify(path: dolphinToolPath) else {
+                dolphinToolAlertMessage =
+                    "The selected executable does not appear to support `dolphin-tool convert`."
+                showDolphinToolAlert = true
+                return
+            }
+
+            chdmanCapabilities = nil
+            let pathLine = "[\(timestamp())] dolphin-tool: \(dolphinToolPath)"
+            appendGlobalLog(pathLine)
+            Task { await logStore.appendGlobal(pathLine) }
+
+            let eng = DolphinToolEngine(
+                dolphinToolPath: dolphinToolPath,
+                compressionPreset: compressionPreset,
+                mode: appMode,
+                concurrency: concurrency,
+                jobs: jobs,
+                logStore: logStore,
+                deleteSource: deleteSourceAfterConversion
+            )
+            eng.onLogLine = { [weak self] line in
+                Task { @MainActor [weak self] in
+                    self?.appendGlobalLog(line)
+                }
+            }
+            engineToRun = eng
+
+        case .maxcso:
+            let maxcsoPath: String
+            do {
+                maxcsoPath = try await maxcsoLocator.locate(
+                    customPath: customMaxcsoPath.isEmpty ? nil : customMaxcsoPath
+                )
+            } catch {
+                maxcsoAlertMessage =
+                    "\(error.localizedDescription)\n\nDownload maxcso from:\ngithub.com/unknownbrackets/maxcso/releases"
+                showMaxcsoAlert = true
+                return
+            }
+
+            guard await maxcsoLocator.verify(path: maxcsoPath) else {
+                maxcsoAlertMessage =
+                    "The selected executable does not appear to be a valid maxcso binary."
+                showMaxcsoAlert = true
+                return
+            }
+
+            chdmanCapabilities = nil
+            let pathLine = "[\(timestamp())] maxcso: \(maxcsoPath)"
+            appendGlobalLog(pathLine)
+            Task { await logStore.appendGlobal(pathLine) }
+
+            let eng = MaxcsoEngine(
+                maxcsoPath: maxcsoPath,
+                compressionPreset: compressionPreset,
+                mode: appMode,
+                concurrency: concurrency,
+                jobs: jobs,
+                logStore: logStore,
+                deleteSource: deleteSourceAfterConversion
+            )
+            eng.onLogLine = { [weak self] line in
+                Task { @MainActor [weak self] in
+                    self?.appendGlobalLog(line)
+                }
+            }
+            engineToRun = eng
+
+        case .nsz:
+            let nszPath: String
+            do {
+                nszPath = try await nszLocator.locate(
+                    customPath: customNszPath.isEmpty ? nil : customNszPath
+                )
+            } catch {
+                nszAlertMessage =
+                    "\(error.localizedDescription)\n\nInstall nsz with:\n    pip3 install nsz"
+                showNszAlert = true
+                return
+            }
+
+            guard await nszLocator.verify(path: nszPath) else {
+                nszAlertMessage =
+                    "The selected executable does not appear to be a valid nsz binary."
+                showNszAlert = true
+                return
+            }
+
+            chdmanCapabilities = nil
+            let pathLine = "[\(timestamp())] nsz: \(nszPath)"
+            appendGlobalLog(pathLine)
+            Task { await logStore.appendGlobal(pathLine) }
+
+            let eng = NszEngine(
+                nszPath: nszPath,
+                compressionPreset: compressionPreset,
+                mode: appMode,
+                concurrency: concurrency,
+                jobs: jobs,
+                logStore: logStore,
+                deleteSource: deleteSourceAfterConversion
+            )
+            eng.onLogLine = { [weak self] line in
+                Task { @MainActor [weak self] in
+                    self?.appendGlobalLog(line)
+                }
+            }
+            engineToRun = eng
+
+        case .sevenZip:
+            let sevenZipPath: String
+            do {
+                sevenZipPath = try await sevenZipLocator.locate(
+                    customPath: customSevenZipPath.isEmpty ? nil : customSevenZipPath
+                )
+            } catch {
+                sevenZipAlertMessage =
+                    "\(error.localizedDescription)\n\nInstall 7z with:\n    brew install p7zip"
+                showSevenZipAlert = true
+                return
+            }
+
+            guard await sevenZipLocator.verify(path: sevenZipPath) else {
+                sevenZipAlertMessage =
+                    "The selected executable does not appear to be a valid 7z binary."
+                showSevenZipAlert = true
+                return
+            }
+
+            chdmanCapabilities = nil
+            let pathLine = "[\(timestamp())] 7z: \(sevenZipPath)"
+            appendGlobalLog(pathLine)
+            Task { await logStore.appendGlobal(pathLine) }
+
+            let eng = SevenZipEngine(
+                sevenZipPath: sevenZipPath,
+                concurrency: concurrency,
+                jobs: jobs,
+                logStore: logStore,
+                deleteSource: deleteSourceAfterConversion
+            )
+            eng.onLogLine = { [weak self] line in
+                Task { @MainActor [weak self] in
+                    self?.appendGlobalLog(line)
+                }
+            }
+            engineToRun = eng
+
+        case .wit:
+            let witPath: String
+            do {
+                witPath = try await witLocator.locate(
+                    customPath: customWitPath.isEmpty ? nil : customWitPath
+                )
+            } catch {
+                witAlertMessage =
+                    "\(error.localizedDescription)\n\nDownload from wit.wiimm.de or install via Homebrew."
+                showWitAlert = true
+                return
+            }
+
+            guard await witLocator.verify(path: witPath) else {
+                witAlertMessage =
+                    "The selected executable does not appear to be a valid wit binary."
+                showWitAlert = true
+                return
+            }
+
+            chdmanCapabilities = nil
+            let pathLine = "[\(timestamp())] wit: \(witPath)"
+            appendGlobalLog(pathLine)
+            Task { await logStore.appendGlobal(pathLine) }
+
+            let eng = WitEngine(
+                witPath: witPath,
+                compressionPreset: compressionPreset,
+                mode: appMode,
+                concurrency: concurrency,
+                jobs: jobs,
+                logStore: logStore,
+                deleteSource: deleteSourceAfterConversion
+            )
+            eng.onLogLine = { [weak self] line in
+                Task { @MainActor [weak self] in
+                    self?.appendGlobalLog(line)
+                }
+            }
+            engineToRun = eng
+
+        case .repackinator:
+            let repackinatorPath: String
+            do {
+                repackinatorPath = try await repackinatorLocator.locate(
+                    customPath: customRepackinatorPath.isEmpty ? nil : customRepackinatorPath
+                )
+            } catch {
+                repackinatorAlertMessage =
+                    "\(error.localizedDescription)\n\nDownload from:\ngithub.com/Team-Resurgent/Repackinator/releases"
+                showRepackinatorAlert = true
+                return
+            }
+
+            guard await repackinatorLocator.verify(path: repackinatorPath) else {
+                repackinatorAlertMessage =
+                    "The selected executable does not appear to be a valid Repackinator binary."
+                showRepackinatorAlert = true
+                return
+            }
+
+            chdmanCapabilities = nil
+            let repackLine = "[\(timestamp())] repackinator: \(repackinatorPath)"
+            appendGlobalLog(repackLine)
+            Task { await logStore.appendGlobal(repackLine) }
+
+            let repackEng = RepackinatorEngine(
+                repackinatorPath: repackinatorPath,
+                compressionPreset: compressionPreset,
+                mode: appMode,
+                concurrency: concurrency,
+                jobs: jobs,
+                logStore: logStore,
+                deleteSource: deleteSourceAfterConversion
+            )
+            repackEng.onLogLine = { [weak self] line in
+                Task { @MainActor [weak self] in
+                    self?.appendGlobalLog(line)
+                }
+            }
+            engineToRun = repackEng
+        }
+
+        let startMsg = startMessage(concurrency: concurrency)
         appendGlobalLog(startMsg)
         Task { await logStore.appendGlobal(startMsg) }
 
-        let eng = ConversionEngine(
-            chdmanPath: chdmanPath,
-            capabilities: caps,
-            compressionPreset: compressionPreset,
-            concurrency: concurrency,
-            jobs: jobs,
-            logStore: logStore,
-            deleteSource: deleteSourceAfterConversion
-        )
-        eng.onLogLine = { [weak self] line in
-            Task { @MainActor [weak self] in
-                self?.appendGlobalLog(line)
-            }
-        }
-
-        engine = eng
+        engine = engineToRun
         isConverting = true
         isPaused = false
         isCancelling = false
@@ -205,8 +583,8 @@ final class AppViewModel: ObservableObject {
         currentRunID = runID
         currentRunWasCancelled = false
 
-        conversionTask = Task { [weak self] in
-            await eng.run()
+        conversionTask = Task { [weak self, engineToRun] in
+            await engineToRun.run()
             await MainActor.run { [weak self] in
                 guard let self else { return }
                 guard self.currentRunID == runID else { return }
@@ -291,7 +669,50 @@ final class AppViewModel: ObservableObject {
 
     private func sendCompletionNotification() {
         NSSound.beep()
-        // Bounce the dock icon to get attention
         NSApp.requestUserAttention(.informationalRequest)
+    }
+
+    private func scanTargetDescription() -> String {
+        switch (selectedTool, appMode) {
+        case (.chdman, .create):
+            return "disc images"
+        case (.chdman, .extract):
+            return "CHD files"
+        case (.dolphinTool, .create):
+            return "ISO, GCZ, and WIA files"
+        case (.dolphinTool, .extract):
+            return "RVZ, GCZ, and WIA files"
+        case (.maxcso, .create):
+            return "ISO files"
+        case (.maxcso, .extract):
+            return "CSO files"
+        case (.nsz, .create):
+            return "NSP and XCI files"
+        case (.nsz, .extract):
+            return "NSZ and XCZ files"
+        case (.sevenZip, .extract):
+            return "7z, ZIP, and RAR archives"
+        case (.sevenZip, .create):
+            return "files"
+        case (.wit, .create):
+            return "ISO files"
+        case (.wit, .extract):
+            return "WBFS files"
+        case (.repackinator, .create):
+            return "ISO files (Xbox OG)"
+        case (.repackinator, .extract):
+            return "CCI files"
+        }
+    }
+
+    private func startMessage(concurrency: Int) -> String {
+        var parts = [
+            "[\(timestamp())] Starting \(selectedTool.rawValue) \(appMode.rawValue) batch",
+            "concurrency=\(concurrency)"
+        ]
+        if appMode == .create {
+            parts.append("preset=\(compressionPreset.title)")
+        }
+        return parts.joined(separator: " — ")
     }
 }

@@ -1,5 +1,51 @@
 import Foundation
 
+// MARK: - ToolKind
+
+enum ToolKind: String, CaseIterable, Identifiable, Sendable {
+    case chdman      = "chdman"
+    case dolphinTool = "dolphin-tool"
+    case maxcso      = "maxcso"
+    case nsz         = "nsz"
+    case sevenZip       = "7z"
+    case wit            = "wit"
+    case repackinator   = "repackinator"
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .chdman:      return "CHD (CD/DVD)"
+        case .dolphinTool: return "RVZ (GC/Wii)"
+        case .maxcso:      return "CSO (PSP/PS2)"
+        case .nsz:         return "NSZ (Switch)"
+        case .sevenZip:       return "7z (Archives)"
+        case .wit:            return "WBFS (Wii/GC)"
+        case .repackinator:   return "CCI (Xbox OG)"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .chdman:      return "opticaldisc"
+        case .dolphinTool: return "gamecontroller"
+        case .maxcso:      return "externaldrive"
+        case .nsz:         return "rectangle.stack"
+        case .sevenZip:       return "doc.zipper"
+        case .wit:            return "opticaldisc.fill"
+        case .repackinator:   return "xmark.seal.fill"
+        }
+    }
+
+    /// Whether this tool supports Create mode.
+    var supportsCreate: Bool {
+        switch self {
+        case .sevenZip: return false
+        default:        return true
+        }
+    }
+}
+
 // MARK: - SourceType
 
 enum SourceType: String, CaseIterable, Hashable, Sendable {
@@ -7,7 +53,22 @@ enum SourceType: String, CaseIterable, Hashable, Sendable {
     case cue = "CUE"
     case gdi = "GDI"
     case chd = "CHD"
+    case gcz = "GCZ"
+    case rvz = "RVZ"
+    case wia = "WIA"
+    case cso = "CSO"
+    case nsp = "NSP"
+    case xci = "XCI"
+    case nsz = "NSZ"
+    case xcz = "XCZ"
+    case sevenZ = "7Z"
+    case zip = "ZIP"
+    case rar = "RAR"
+    case wbfs = "WBFS"
+    case cci  = "CCI"
 }
+
+// MARK: - AppMode
 
 enum AppMode: String, CaseIterable, Identifiable, Sendable {
     case create  = "create"
@@ -15,10 +76,10 @@ enum AppMode: String, CaseIterable, Identifiable, Sendable {
 
     var id: String { rawValue }
 
-    var label: String {
+    func label(for tool: ToolKind) -> String {
         switch self {
-        case .create:  return "Create CHD"
-        case .extract: return "Extract CHD"
+        case .create:  return "Create"
+        case .extract: return "Extract"
         }
     }
 

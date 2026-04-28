@@ -1,64 +1,64 @@
 import Foundation
 
-enum ChdmanLocatorError: LocalizedError {
+enum NszLocatorError: LocalizedError {
     case notFound
 
     var errorDescription: String? {
-        switch self {
-        case .notFound:
-            return "chdman not found. Install it with: brew install rom-tools"
-        }
+        "nsz not found. Install it with: pip3 install nsz"
     }
 }
 
-/// Finds the chdman executable and interrogates it for supported subcommands.
-struct ChdmanLocator {
+/// Finds the nsz executable for Nintendo Switch NSP/XCI compression.
+struct NszLocator {
 
     private let knownPaths = [
-        "/opt/homebrew/bin/chdman",
-        "/usr/local/bin/chdman"
+        "/opt/homebrew/bin/nsz",
+        "/usr/local/bin/nsz"
     ]
 
     // MARK: - Locate
 
     func locate(customPath: String?) async throws -> String {
-        // 1. Custom path wins if it exists and is executable.
         if let custom = customPath, !custom.isEmpty {
             if isExecutable(at: custom) { return custom }
         }
 
-        // 2. Known Homebrew locations.
         for path in knownPaths {
             if isExecutable(at: path) { return path }
         }
 
-        // 3. PATH lookup via `which`.
-        if let path = await which("chdman") {
+        // pip user install (~/.local/bin/nsz)
+        let pipUserPath = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".local/bin/nsz").path
+        if isExecutable(at: pipUserPath) { return pipUserPath }
+
+        // macOS pip user install (~/Library/Python/3.x/bin/)
+        let libDir = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Python")
+        if let pythonVersions = try? FileManager.default.contentsOfDirectory(
+            at: libDir, includingPropertiesForKeys: nil
+        ) {
+            for dir in pythonVersions.sorted(by: { $0.path > $1.path }) {
+                let candidate = dir.appendingPathComponent("bin/nsz").path
+                if isExecutable(at: candidate) { return candidate }
+            }
+        }
+
+        if let path = await which("nsz") {
             return path
         }
 
-        throw ChdmanLocatorError.notFound
+        throw NszLocatorError.notFound
     }
 
-    // MARK: - Capability detection
+    // MARK: - Verify
 
-    func detectCapabilities(chdmanPath: String) async throws -> ChdmanCapabilities {
-        // Run `chdman` with no arguments; it prints usage to stdout or stderr.
-        let result = try await runQuiet(executablePath: chdmanPath, arguments: [])
+    func verify(path: String) async -> Bool {
+        guard let result = try? await runQuiet(executablePath: path, arguments: ["--help"]) else {
+            return false
+        }
         let combined = result.stdout + result.stderr
-
-        let hasCreateCD   = combined.range(of: "createcd",   options: .caseInsensitive) != nil
-        let hasCreateDVD  = combined.range(of: "createdvd",  options: .caseInsensitive) != nil
-        let hasExtractCD  = combined.range(of: "extractcd",  options: .caseInsensitive) != nil
-        let hasExtractDVD = combined.range(of: "extractdvd", options: .caseInsensitive) != nil
-
-        return ChdmanCapabilities(
-            hasCreateCD:   hasCreateCD,
-            hasCreateDVD:  hasCreateDVD,
-            hasExtractCD:  hasExtractCD,
-            hasExtractDVD: hasExtractDVD,
-            rawHelpText:   combined
-        )
+        return combined.range(of: "compress", options: .caseInsensitive) != nil
     }
 
     // MARK: - Helpers
@@ -75,9 +75,6 @@ struct ChdmanLocator {
         return path.isEmpty ? nil : path
     }
 
-    /// Minimal runner used only for quick capability queries.
-    /// Reads pipes before waiting for exit to avoid deadlock when the pipe
-    /// buffer fills before the process terminates.
     private func runQuiet(executablePath: String, arguments: [String]) async throws
         -> (exitCode: Int32, stdout: String, stderr: String)
     {

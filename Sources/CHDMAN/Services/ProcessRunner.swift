@@ -19,13 +19,17 @@ struct ProcessResult: Sendable {
 struct ProcessRunner {
 
     /// Run a process, calling `lineHandler` for every chunk of text produced.
+    /// - Parameters:
+    ///   - willLaunch: Called with the Process *before* it is started, so callers
+    ///     can register it synchronously (e.g. in a ProcessRegistry).
+    ///   - processEnded: Called after the process terminates.
     /// - Returns: The exit code and full captured output after the process exits.
     func run(
         executablePath: String,
         arguments: [String],
         lineHandler: @escaping (String) async -> Void,
-        processCreated: @escaping (Process) -> Void = { _ in },
-        processEnded:   @Sendable @escaping () -> Void = {}
+        willLaunch: @escaping (Process) -> Void = { _ in },
+        processEnded: @Sendable @escaping () -> Void = {}
     ) async throws -> ProcessResult {
 
         let process = Process()
@@ -37,11 +41,18 @@ struct ProcessRunner {
         process.standardOutput = outPipe
         process.standardError  = errPipe
 
-        // Shared mutable state accessed only from the termination handler /
-        // readability handlers, which are serialised by design.
+        // Thread-safe accumulator for captured output. Uses a serial dispatch
+        // queue to prevent data races between readabilityHandler callbacks
+        // and the terminationHandler draining tail bytes.
         final class Accumulator: @unchecked Sendable {
-            var stdout = ""
-            var stderr = ""
+            private let queue = DispatchQueue(label: "processrunner.accumulator")
+            private var _stdout = ""
+            private var _stderr = ""
+
+            func appendStdout(_ text: String) { queue.sync { _stdout += text } }
+            func appendStderr(_ text: String) { queue.sync { _stderr += text } }
+            var stdout: String { queue.sync { _stdout } }
+            var stderr: String { queue.sync { _stderr } }
         }
         let acc = Accumulator()
 
@@ -55,7 +66,7 @@ struct ProcessRunner {
             let data = handle.availableData
             guard !data.isEmpty, let text = String(data: data, encoding: .utf8)
             else { return }
-            acc.stdout += text
+            acc.appendStdout(text)
             continuation.yield(text)
         }
 
@@ -64,7 +75,7 @@ struct ProcessRunner {
             let data = handle.availableData
             guard !data.isEmpty, let text = String(data: data, encoding: .utf8)
             else { return }
-            acc.stderr += text
+            acc.appendStderr(text)
             continuation.yield("[stderr] " + text)
         }
 
@@ -78,11 +89,11 @@ struct ProcessRunner {
             let tailErr = errPipe.fileHandleForReading.readDataToEndOfFile()
 
             if let t = String(data: tailOut, encoding: .utf8), !t.isEmpty {
-                acc.stdout += t
+                acc.appendStdout(t)
                 continuation.yield(t)
             }
             if let t = String(data: tailErr, encoding: .utf8), !t.isEmpty {
-                acc.stderr += t
+                acc.appendStderr(t)
                 continuation.yield("[stderr] " + t)
             }
             continuation.finish()
@@ -94,9 +105,10 @@ struct ProcessRunner {
         return try await withTaskCancellationHandler {
             // Bail immediately if already cancelled before we even launch.
             try Task.checkCancellation()
-            // Launch.
+
+            // Register the process before launch so cancel() can always find it.
+            willLaunch(process)
             try process.run()
-            processCreated(process)
 
             // Drain the stream, forwarding each chunk to the caller.
             for await chunk in stream {

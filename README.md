@@ -1,81 +1,271 @@
-# CHDForge - Batch CHD Converter
+# CHDForge — Batch ROM & Disc Image Converter
 
-A macOS app for batch converting disc images to CHD format using [chdman](https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman).
+A macOS app for batch converting disc images and ROM archives across multiple emulator formats.
 
-## About
+> Built with [Claude](https://claude.ai) (Anthropic's AI assistant) — the entire SwiftUI app was built collaboratively through conversation.
 
-This project was vibe coded with [Claude](https://claude.ai) (Anthropic's AI assistant) based on a script I originally wrote. The entire SwiftUI app — architecture, UI, parsing, and batch processing — was built collaboratively through conversation with Claude.
+---
+
+## Supported Tools & Formats
+
+| Tool | Mode | Source → Output | Platform |
+|------|------|-----------------|----------|
+| **chdman** | Create | ISO, CUE/BIN, GDI → CHD | CD/DVD (PS1, PS2, Dreamcast, Saturn…) |
+| **chdman** | Extract | CHD → BIN/ISO | |
+| **dolphin-tool** | Create | ISO, GCZ, WIA → RVZ | GameCube / Wii |
+| **dolphin-tool** | Extract | RVZ, GCZ, WIA → ISO | |
+| **maxcso** | Create | ISO → CSO | PSP / PS2 |
+| **maxcso** | Extract | CSO → ISO | |
+| **nsz** | Create | NSP, XCI → NSZ, XCZ | Nintendo Switch |
+| **nsz** | Extract | NSZ, XCZ → NSP, XCI | |
+| **wit** | Create | ISO → WBFS | Wii / GameCube |
+| **wit** | Extract | WBFS → ISO | |
+| **7z** | Extract | 7Z, ZIP, RAR → files | Any ROM archive set |
+
+---
 
 ## Features
 
-- **Bidirectional** — create CHD from disc images or extract disc images from CHD
-- Batch convert CUE/BIN, GDI, and ISO disc images to CHD
-- Batch extract CHD files back to BIN or ISO
-- **Compression presets** — Fast, Balanced, or Smallest to trade speed for file size
-- Folder scanning with recursive file discovery
-- Drag and drop folder support
-- Parallel conversions with configurable concurrency (1–8 simultaneous jobs)
-- Pause, resume, and cancel conversions
-- Real-time progress tracking with ETA
+- **6 conversion backends** — one app for your entire ROM library
+- **Bidirectional** — create compressed images or extract back to original
+- Batch convert entire folders with recursive file discovery
+- **Compression presets** — Fast, Balanced, or Smallest per tool
+- Drag and drop folder support with auto-scan
+- Parallel conversions — 1–8 simultaneous jobs (configurable)
+- Pause, resume, and cancel mid-batch
+- Real-time progress with ETA
 - Per-job and global logging with log file export
 - Optional source file deletion after successful conversion
-- macOS notifications on batch completion
-- Drag-and-drop folders with auto-scan
-- Auto-detection of chdman with guided install (Homebrew or MAME download)
-- Automatic chdman capability detection (createcd/createdvd/extractcd/extractdvd)
-- Configurable chdman binary path
-- macOS native SwiftUI interface
+- macOS notification on batch completion
+- Auto-detection of all tool binaries
+- Custom binary paths for every tool in Settings
+- macOS native SwiftUI interface — requires macOS 13.0+
 
-## Compression Presets
+---
 
-CHD is a **lossless** format — gameplay is identical regardless of preset. The preset only affects conversion speed and resulting file size.
+## Installing the Tools
 
-| Preset | Description | Best for |
-|--------|-------------|----------|
-| **Fast** | Lightweight compression (zlib/cdzl) | Large libraries where speed matters |
-| **Balanced** | chdman defaults | General use (default) |
-| **Smallest** | Multi-codec with tuned hunk sizes (lzma, cdlz, flac) | Maximizing disk savings |
+Most tools can be installed through **Homebrew** — a package manager for macOS. If you don't have Homebrew yet, start there.
 
-Change the preset from the toolbar chip or in **Settings > Conversion**.
+### Step 1 — Install Homebrew
 
-## Requirements
+Open **Terminal** (Applications → Utilities → Terminal) and paste:
 
-- macOS 13.0+
-- [chdman](https://wiki.recalbox.com/en/tutorials/utilities/rom-conversion/chdman) binary installed
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
 
-## Installing chdman
+Follow the prompts. When it finishes, **read the terminal output carefully** — it will print two lines at the end that you must run to finish the setup. They look like this (Apple Silicon Macs):
 
-**Option 1 — Homebrew** (requires [Homebrew](https://brew.sh)):
+```
+==> Next steps:
+Run these two commands in your terminal to add Homebrew to your PATH:
+    (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> ~/.zprofile
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+```
+
+**Copy those exact two lines from your terminal and run them.** Without this step, `brew` won't be found in new terminal windows. On Intel Macs this step is usually not needed.
+
+Verify the install worked:
+```bash
+brew --version
+```
+
+---
+
+### Step 2 — Install Tools You Need
+
+Install only the tools for the formats you care about. You don't need all of them.
+
+#### chdman — CHD (CD/DVD)
+For PS1, PS2, Dreamcast, Saturn, and other disc-based systems.
 ```bash
 brew install rom-tools
 ```
+Or download MAME from [mamedev.org](https://www.mamedev.org/release.html) (chdman is included), then set the path in Settings.
 
-**Option 2 — MAME**: Download from [mamedev.org](https://www.mamedev.org/release.html), which includes chdman. Then set the path in the app's Settings.
+---
 
-## Running unsigned apps on macOS
+#### dolphin-tool — RVZ (GameCube / Wii)
+```bash
+npm i -g dolphin-tool
+```
+Requires **Node.js**. If you don't have it:
+```bash
+brew install node
+```
+Then install dolphin-tool:
+```bash
+npm i -g dolphin-tool
+```
+> **Note:** CHDForge auto-detects the native binary inside node_modules. If it can't find it, open Settings and paste the path to the binary. Run `npm root -g` in Terminal to find where npm installs global packages.
 
-Since CHDForge is not signed with an Apple Developer ID, macOS Gatekeeper will block it on the first launch.
+Alternatively, install [Dolphin Emulator](https://dolphin-emu.org/) — dolphin-tool is bundled inside the app.
 
-1. Right-click `CHDForge.app` and choose **Open**.
-2. macOS will say it can't be opened. Go to **System Settings > Privacy & Security**.
-3. Click **Open Anyway** for CHDForge.
-4. Open the app again and authenticate with an admin account when prompted.
+---
 
-After that one-time setup, the app opens normally.
+#### maxcso — CSO (PSP / PS2)
+maxcso is **not on Homebrew**. Download the macOS binary from GitHub:
 
-## Building
+[github.com/unknownbrackets/maxcso/releases](https://github.com/unknownbrackets/maxcso/releases)
 
-Open the project in Xcode or build from the command line:
+Download the `.tar.gz` for macOS, extract it, and move `maxcso` somewhere permanent (e.g. `~/Applications/Tools/maxcso`). Then set the path in **Settings → maxcso Path**.
 
+---
+
+#### nsz — NSZ (Nintendo Switch)
+Requires **Python 3**. If you don't have it:
+```bash
+brew install python
+```
+Then install nsz:
+```bash
+pip3 install nsz
+```
+CHDForge auto-detects nsz in common pip install locations. If it can't find it, run `which nsz` in Terminal and paste the result into **Settings → nsz Path**.
+
+---
+
+#### wit — WBFS (Wii / GameCube)
+Wiimms ISO Tools must be built/installed manually — it's not on Homebrew.
+
+**1. Download** the macOS package from [wit.wiimm.de/download.html](https://wit.wiimm.de/download.html)
+   Choose the file ending in `-mac.tar.gz`.
+
+**2. Extract the archive** — double-click the `.tar.gz` in Finder, or in Terminal:
+```bash
+cd ~/Downloads
+tar -xzf wit-*.tar.gz
+```
+
+**3. Run the installer** — `cd` into the extracted folder, then run it with sudo:
+```bash
+cd ~/Downloads/wit-v*/
+sudo ./install.sh
+```
+Enter your password when prompted. This copies `wit` and `wwt` to `/usr/local/bin/`.
+
+> **Note:** The installer tries to download optional game title databases from gametdb.com and will print a bunch of errors if those downloads fail — that is completely harmless. The tool works fine without them.
+
+**4. Verify it installed:**
+```bash
+ls /usr/local/bin/wit
+```
+If that file exists, CHDForge will find and use it automatically — no further setup needed.
+
+**If macOS blocks it** when a conversion actually runs (you see "cannot be opened because the developer cannot be verified"), go to **System Settings → Privacy & Security** and click **Allow Anyway** next to wit.
+
+---
+
+#### 7z — Archive Extraction (7Z / ZIP / RAR)
+```bash
+brew install p7zip
+```
+Or install the newer official build:
+```bash
+brew install sevenzip
+```
+
+---
+
+### Verify Everything Is Working
+
+After installing, launch CHDForge and select each tool in the toolbar. The app checks for the binary on startup and shows an alert with install instructions if it can't find it.
+
+---
+
+## Compression Presets
+
+All formats use **lossless** compression — gameplay is bit-for-bit identical regardless of preset. The preset only affects conversion speed and file size.
+
+### chdman (CHD)
+| Preset | Method | Notes |
+|--------|--------|-------|
+| Fast | zlib / cdzl | Larger files, fast conversion |
+| Balanced | chdman defaults | General use (recommended) |
+| Smallest | lzma + cdlz + flac, tuned hunk sizes | Maximum compression, slowest |
+
+### dolphin-tool (RVZ)
+| Preset | Method | Notes |
+|--------|--------|-------|
+| Fast | zstd level 1 | Quick with decent ratio |
+| Balanced | zstd level 5 | Good balance (recommended) |
+| Smallest | lzma2 level 9 | Smallest files, slowest |
+
+### maxcso (CSO)
+| Preset | Method | Notes |
+|--------|--------|-------|
+| Fast | LZ4 | Fastest compression |
+| Balanced | zlib (default) | Good balance |
+| Smallest | zstd | Smallest files |
+
+### nsz (NSZ/XCZ)
+| Preset | Level | Notes |
+|--------|-------|-------|
+| Fast | zstd level 3 | Fast |
+| Balanced | zstd level 18 | nsz default (recommended) |
+| Smallest | zstd level 22 | Maximum compression |
+
+### wit (WBFS)
+| Preset | Behavior | Notes |
+|--------|----------|-------|
+| Fast | No scrubbing | Faster, slightly larger |
+| Balanced | Default scrubbing | Removes unused game data |
+| Smallest | Aggressive trim | Smallest possible WBFS |
+
+---
+
+## Running the App (Gatekeeper)
+
+Since CHDForge is not signed with an Apple Developer ID, macOS will block it on first launch.
+
+1. Right-click `CHDForge.app` → **Open**
+2. macOS says it can't be verified — click **Open** if the option appears, or dismiss the dialog
+3. Go to **System Settings → Privacy & Security**
+4. Scroll down to find CHDForge listed with an **Open Anyway** button — click it
+5. Launch the app again and authenticate with your admin password when prompted
+
+After this one-time setup, the app opens normally.
+
+---
+
+## Building from Source
+
+Open in Xcode or build from Terminal:
 ```bash
 swift build
 ```
+Requires Xcode 15+ and macOS 13.0+ SDK.
+
+---
+
+## Architecture
+
+Layered SwiftUI architecture with a `BatchEngine` base class that provides concurrency, pause/resume, and cancel for all tools:
+
+- **Models** — `ConversionJob`, `ToolKind`, `AppMode`, `SourceType`, `CompressionPreset`
+- **Services** — `BatchEngine` (shared concurrency), one `Engine` + one `Locator` per tool, `FolderScanner`, `ProcessRunner`, `LogStore`
+- **ViewModels** — `AppViewModel` (central state + orchestration)
+- **Views** — `ContentView`, `FileListView`, `LogPanelView`, `SettingsView`
+- **Parsers** — `CueParser`, `GdiParser` (multi-file source cleanup)
+
+Adding a new conversion tool:
+1. Add `SourceType` + `ToolKind` cases in `ConversionJob.swift`
+2. Create a Locator struct (find + verify the binary)
+3. Create a `BatchEngine` subclass (override `convert()`, optionally `cleanupSource()`)
+4. Add scan extensions in `FolderScanner`
+5. Add compression arguments in `CompressionPreset`
+6. Wire up in `AppViewModel`, `ContentView`, and `SettingsView`
+
+---
 
 ## Support
 
 If you find CHDForge useful, consider buying me a coffee:
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/ninjapiraterobo)
+
+---
 
 ## License
 

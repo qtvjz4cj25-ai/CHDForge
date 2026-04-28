@@ -174,6 +174,19 @@ struct FileListView: View {
         case .cue: return Color(red: 0.2, green: 0.72, blue: 0.35)
         case .gdi: return Color(red: 0.95, green: 0.55, blue: 0.1)
         case .chd: return .purple
+        case .gcz: return Color(red: 0.88, green: 0.42, blue: 0.16)
+        case .rvz: return Color(red: 0.15, green: 0.65, blue: 0.8)
+        case .wia: return Color(red: 0.8, green: 0.32, blue: 0.5)
+        case .cso: return Color(red: 0.55, green: 0.35, blue: 0.85)
+        case .nsp: return Color(red: 0.9, green: 0.2, blue: 0.3)
+        case .xci: return Color(red: 0.2, green: 0.5, blue: 0.9)
+        case .nsz: return Color(red: 0.75, green: 0.15, blue: 0.25)
+        case .xcz: return Color(red: 0.15, green: 0.4, blue: 0.75)
+        case .sevenZ: return Color(red: 0.4, green: 0.7, blue: 0.3)
+        case .zip: return Color(red: 0.95, green: 0.7, blue: 0.2)
+        case .rar: return Color(red: 0.7, green: 0.3, blue: 0.6)
+        case .wbfs: return Color(red: 0.3, green: 0.6, blue: 0.9)
+        case .cci:  return Color(red: 0.55, green: 0.15, blue: 0.15)
         }
     }
 

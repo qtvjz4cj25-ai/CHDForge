@@ -7,21 +7,48 @@ struct FolderScanner: Sendable {
     /// Runs file-system enumeration off the main thread, then creates the
     /// @MainActor ConversionJob objects back on the main actor.
     @MainActor
-    func scan(folder: URL, recursive: Bool, mode: AppMode = .create) async -> [ConversionJob] {
-        // Heavy FS work on a background priority executor.
+    func scan(folder: URL, recursive: Bool, tool: ToolKind, mode: AppMode) async -> [ConversionJob] {
         let found: [(URL, SourceType)] = await Task.detached(priority: .userInitiated) {
-            Self.enumerateFiles(folder: folder, recursive: recursive, mode: mode)
+            Self.enumerateFiles(folder: folder, recursive: recursive, tool: tool, mode: mode)
         }.value
 
-        // ConversionJob is @MainActor — create them here on the main actor.
         return found.map { (url, type) in
             let output: URL
-            switch mode {
-            case .create:
+            switch (tool, mode) {
+            case (.chdman, .create):
                 output = url.deletingPathExtension().appendingPathExtension("chd")
-            case .extract:
-                // Default extraction to .bin (chdman extractcd outputs a bin+cue or raw bin)
+            case (.chdman, .extract):
                 output = url.deletingPathExtension().appendingPathExtension("bin")
+            case (.dolphinTool, .create):
+                output = url.deletingPathExtension().appendingPathExtension("rvz")
+            case (.dolphinTool, .extract):
+                output = url.deletingPathExtension().appendingPathExtension("iso")
+            case (.maxcso, .create):
+                output = url.deletingPathExtension().appendingPathExtension("cso")
+            case (.maxcso, .extract):
+                output = url.deletingPathExtension().appendingPathExtension("iso")
+            case (.nsz, .create):
+                // NSP → NSZ, XCI → XCZ
+                let ext = url.pathExtension.lowercased() == "xci" ? "xcz" : "nsz"
+                output = url.deletingPathExtension().appendingPathExtension(ext)
+            case (.nsz, .extract):
+                // NSZ → NSP, XCZ → XCI
+                let ext = url.pathExtension.lowercased() == "xcz" ? "xci" : "nsp"
+                output = url.deletingPathExtension().appendingPathExtension(ext)
+            case (.sevenZip, .extract):
+                // Archive → directory named after the archive (no extension)
+                output = url.deletingPathExtension()
+            case (.sevenZip, .create):
+                // 7z only supports extract; this case shouldn't occur
+                output = url.deletingPathExtension().appendingPathExtension("7z")
+            case (.wit, .create):
+                output = url.deletingPathExtension().appendingPathExtension("wbfs")
+            case (.wit, .extract):
+                output = url.deletingPathExtension().appendingPathExtension("iso")
+            case (.repackinator, .create):
+                output = url.deletingPathExtension().appendingPathExtension("cci")
+            case (.repackinator, .extract):
+                output = url.deletingPathExtension().appendingPathExtension("iso")
             }
             return ConversionJob(sourceURL: url, sourceType: type, outputURL: output)
         }
@@ -32,6 +59,7 @@ struct FolderScanner: Sendable {
     private static func enumerateFiles(
         folder: URL,
         recursive: Bool,
+        tool: ToolKind,
         mode: AppMode
     ) -> [(URL, SourceType)] {
         let fm = FileManager.default
@@ -49,9 +77,21 @@ struct FolderScanner: Sendable {
         var seen: Set<String> = []
 
         let extensions: Set<String>
-        switch mode {
-        case .create:  extensions = ["iso", "cue", "gdi"]
-        case .extract: extensions = ["chd"]
+        switch (tool, mode) {
+        case (.chdman, .create):       extensions = ["iso", "cue", "gdi"]
+        case (.chdman, .extract):      extensions = ["chd"]
+        case (.dolphinTool, .create):  extensions = ["iso", "gcz", "wia"]
+        case (.dolphinTool, .extract): extensions = ["rvz", "wia", "gcz"]
+        case (.maxcso, .create):       extensions = ["iso"]
+        case (.maxcso, .extract):      extensions = ["cso"]
+        case (.nsz, .create):          extensions = ["nsp", "xci"]
+        case (.nsz, .extract):         extensions = ["nsz", "xcz"]
+        case (.sevenZip, .extract):    extensions = ["7z", "zip", "rar"]
+        case (.sevenZip, .create):     extensions = []
+        case (.wit, .create):               extensions = ["iso"]
+        case (.wit, .extract):              extensions = ["wbfs"]
+        case (.repackinator, .create):      extensions = ["iso"]
+        case (.repackinator, .extract):     extensions = ["cci"]
         }
 
         for case let url as URL in enumerator {
@@ -67,6 +107,19 @@ struct FolderScanner: Sendable {
             case "cue": type = .cue
             case "gdi": type = .gdi
             case "chd": type = .chd
+            case "gcz": type = .gcz
+            case "rvz": type = .rvz
+            case "wia": type = .wia
+            case "cso": type = .cso
+            case "nsp": type = .nsp
+            case "xci": type = .xci
+            case "nsz": type = .nsz
+            case "xcz": type = .xcz
+            case "7z":  type = .sevenZ
+            case "zip": type = .zip
+            case "rar": type = .rar
+            case "wbfs": type = .wbfs
+            case "cci":  type = .cci
             default:    continue
             }
 
@@ -90,6 +143,19 @@ struct FolderScanner: Sendable {
         case .cue: return 1
         case .gdi: return 2
         case .chd: return 3
+        case .gcz: return 4
+        case .wia: return 5
+        case .rvz: return 6
+        case .cso: return 7
+        case .nsp: return 8
+        case .xci: return 9
+        case .nsz: return 10
+        case .xcz: return 11
+        case .sevenZ: return 12
+        case .zip: return 13
+        case .rar: return 14
+        case .wbfs: return 15
+        case .cci:  return 16
         }
     }
 }

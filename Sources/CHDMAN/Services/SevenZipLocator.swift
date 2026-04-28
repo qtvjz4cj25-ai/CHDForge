@@ -1,64 +1,53 @@
 import Foundation
 
-enum ChdmanLocatorError: LocalizedError {
+enum SevenZipLocatorError: LocalizedError {
     case notFound
 
     var errorDescription: String? {
-        switch self {
-        case .notFound:
-            return "chdman not found. Install it with: brew install rom-tools"
-        }
+        "7z not found. Install via Homebrew: brew install p7zip (or brew install 7zip)"
     }
 }
 
-/// Finds the chdman executable and interrogates it for supported subcommands.
-struct ChdmanLocator {
+/// Finds the 7z executable for archive extraction.
+struct SevenZipLocator {
 
     private let knownPaths = [
-        "/opt/homebrew/bin/chdman",
-        "/usr/local/bin/chdman"
+        "/opt/homebrew/bin/7z",
+        "/opt/homebrew/bin/7zz",
+        "/usr/local/bin/7z",
+        "/usr/local/bin/7zz"
     ]
 
     // MARK: - Locate
 
     func locate(customPath: String?) async throws -> String {
-        // 1. Custom path wins if it exists and is executable.
         if let custom = customPath, !custom.isEmpty {
             if isExecutable(at: custom) { return custom }
         }
 
-        // 2. Known Homebrew locations.
         for path in knownPaths {
             if isExecutable(at: path) { return path }
         }
 
-        // 3. PATH lookup via `which`.
-        if let path = await which("chdman") {
-            return path
+        // Try `which` for both common binary names
+        for name in ["7z", "7zz"] {
+            if let path = await which(name) {
+                return path
+            }
         }
 
-        throw ChdmanLocatorError.notFound
+        throw SevenZipLocatorError.notFound
     }
 
-    // MARK: - Capability detection
+    // MARK: - Verify
 
-    func detectCapabilities(chdmanPath: String) async throws -> ChdmanCapabilities {
-        // Run `chdman` with no arguments; it prints usage to stdout or stderr.
-        let result = try await runQuiet(executablePath: chdmanPath, arguments: [])
+    func verify(path: String) async -> Bool {
+        // 7z with no args prints banner/help and exits with code 0.
+        guard let result = try? await runQuiet(executablePath: path, arguments: []) else {
+            return false
+        }
         let combined = result.stdout + result.stderr
-
-        let hasCreateCD   = combined.range(of: "createcd",   options: .caseInsensitive) != nil
-        let hasCreateDVD  = combined.range(of: "createdvd",  options: .caseInsensitive) != nil
-        let hasExtractCD  = combined.range(of: "extractcd",  options: .caseInsensitive) != nil
-        let hasExtractDVD = combined.range(of: "extractdvd", options: .caseInsensitive) != nil
-
-        return ChdmanCapabilities(
-            hasCreateCD:   hasCreateCD,
-            hasCreateDVD:  hasCreateDVD,
-            hasExtractCD:  hasExtractCD,
-            hasExtractDVD: hasExtractDVD,
-            rawHelpText:   combined
-        )
+        return combined.range(of: "7-Zip", options: .caseInsensitive) != nil
     }
 
     // MARK: - Helpers
@@ -75,9 +64,6 @@ struct ChdmanLocator {
         return path.isEmpty ? nil : path
     }
 
-    /// Minimal runner used only for quick capability queries.
-    /// Reads pipes before waiting for exit to avoid deadlock when the pipe
-    /// buffer fills before the process terminates.
     private func runQuiet(executablePath: String, arguments: [String]) async throws
         -> (exitCode: Int32, stdout: String, stderr: String)
     {
