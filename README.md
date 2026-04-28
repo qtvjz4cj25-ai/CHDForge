@@ -21,13 +21,17 @@ A macOS app for batch converting disc images and ROM archives across multiple em
 | **wit** | Create | ISO → WBFS | Wii / GameCube |
 | **wit** | Extract | WBFS → ISO | |
 | **7z** | Extract | 7Z, ZIP, RAR → files | Any ROM archive set |
+| **Repackinator** | Create | ISO → CCI | Original Xbox |
+| **Repackinator** | Extract | CCI → ISO | |
 
 ---
 
 ## Features
 
-- **6 conversion backends** — one app for your entire ROM library
+- **8 conversion backends** — one app for your entire ROM library
 - **Bidirectional** — create compressed images or extract back to original
+- **First-launch Setup Wizard** — detects missing tools and installs them in one click
+- **Artwork Scraper** — fetch box art, screenshots, and wheel art from ScreenScraper.fr and generate `gamelist.xml` for EmulationStation, ES-DE, or Images Only
 - Batch convert entire folders with recursive file discovery
 - **Compression presets** — Fast, Balanced, or Smallest per tool
 - Drag and drop folder support with auto-scan
@@ -44,6 +48,20 @@ A macOS app for batch converting disc images and ROM archives across multiple em
 ---
 
 ## Installing the Tools
+
+### Setup Wizard (Recommended)
+
+CHDForge includes a built-in **Setup Wizard** that runs automatically on first launch. It scans for each tool, shows what's missing, and lets you install everything with a single click — no terminal needed for most tools.
+
+You can reopen the wizard any time from **Settings → Open Wizard**.
+
+---
+
+If you prefer to install manually, or if the wizard can't find a tool after installing it, follow the steps below.
+
+---
+
+### Manual Installation
 
 Most tools can be installed through **Homebrew** — a package manager for macOS. If you don't have Homebrew yet, start there.
 
@@ -168,9 +186,22 @@ brew install sevenzip
 
 ---
 
+#### Repackinator — CCI (Original Xbox)
+Repackinator is **not on Homebrew**. Download the macOS binary from GitHub:
+
+[github.com/Team-Resurgent/Repackinator/releases](https://github.com/Team-Resurgent/Repackinator/releases/latest)
+
+Download the `Repackinator-osx-arm64.tar` (Apple Silicon) or `Repackinator-osx-x64.tar` (Intel) archive, extract it, and move the `repackinator` binary somewhere permanent (e.g. `~/Applications/Repackinator/repackinator`). Then set the path in **Settings → Repackinator Path**.
+
+> **Note:** After extracting, macOS may not mark the binary as executable. CHDForge will automatically `chmod +x` it on first use, but if you run it manually from Terminal first, run `chmod +x repackinator` in the folder where it lives.
+
+**If macOS blocks it** (Gatekeeper), go to **System Settings → Privacy & Security** and click **Allow Anyway** next to Repackinator, then try running the conversion again.
+
+---
+
 ### Verify Everything Is Working
 
-After installing, launch CHDForge and select each tool in the toolbar. The app checks for the binary on startup and shows an alert with install instructions if it can't find it.
+After installing, launch CHDForge. The **Setup Wizard** will check each tool automatically. You can also select a tool in the sidebar — the app checks for its binary and shows an alert with instructions if it can't find it.
 
 ---
 
@@ -213,6 +244,13 @@ All formats use **lossless** compression — gameplay is bit-for-bit identical r
 | Balanced | Default scrubbing | Removes unused game data |
 | Smallest | Aggressive trim | Smallest possible WBFS |
 
+### Repackinator (CCI)
+| Preset | Behavior | Notes |
+|--------|----------|-------|
+| Fast | CCI only | Fastest, no padding removal |
+| Balanced | CCI + scrub | Removes padding sectors |
+| Smallest | CCI + trimscrub | Scrub and trim for smallest size |
+
 ---
 
 ## Running the App (Gatekeeper)
@@ -246,7 +284,8 @@ Layered SwiftUI architecture with a `BatchEngine` base class that provides concu
 - **Models** — `ConversionJob`, `ToolKind`, `AppMode`, `SourceType`, `CompressionPreset`
 - **Services** — `BatchEngine` (shared concurrency), one `Engine` + one `Locator` per tool, `FolderScanner`, `ProcessRunner`, `LogStore`
 - **ViewModels** — `AppViewModel` (central state + orchestration)
-- **Views** — `ContentView`, `FileListView`, `LogPanelView`, `SettingsView`
+- **Views** — `ContentView` (NavigationSplitView), `FileListView`, `LogPanelView`, `SettingsView`, `SetupWizardView`
+- **Scraper** — `ArtworkScraperView`, `ScreenScraperClient`, `ScreenScraperModels`, `GamelistWriter`
 - **Parsers** — `CueParser`, `GdiParser` (multi-file source cleanup)
 
 Adding a new conversion tool:
