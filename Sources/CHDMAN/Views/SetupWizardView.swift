@@ -60,11 +60,11 @@ private let allTools: [ToolSetupInfo] = [
             url: "https://github.com/Team-Resurgent/Repackinator/releases/latest",
             hint: "Download the osx-arm64 or osx-x64 tar, extract, then set the path in Settings.")),
     .init(id: .makeps3iso,
-          name: "makeps3iso",
-          subtitle: "PS3 Folder → ISO — download required",
+          name: "ps3iso-utils",
+          subtitle: "PS3 Folder ↔ ISO — download required (makeps3iso + extractps3iso)",
           installMethod: .manual(
             url: "https://github.com/bucanero/ps3iso-utils/releases",
-            hint: "Download the tar, extract it, chmod +x the binary, then set the path in Settings.")),
+            hint: "Download the tar, extract it, chmod +x both binaries, then set the paths in Settings.")),
     .init(id: .extractXiso,
           name: "extract-xiso",
           subtitle: "Xbox OG · Create & extract XISO images",
@@ -425,12 +425,25 @@ struct SetupWizardView: View {
                 "/usr/local/bin/repackinator",
             ].first { FileManager.default.fileExists(atPath: $0) }
         case .makeps3iso:
-            return [
+            // Both makeps3iso and extractps3iso must be present
+            let makePath = [
                 "\(home)/bin/makeps3iso",
                 "\(home)/.local/bin/makeps3iso",
                 "\(home)/Applications/ps3iso-utils/makeps3iso",
+                "\(home)/Applications/makeps3iso/makeps3iso",
                 "/usr/local/bin/makeps3iso",
+                "/opt/homebrew/bin/makeps3iso",
             ].first { FileManager.default.fileExists(atPath: $0) }
+            let extractPath = [
+                "\(home)/bin/extractps3iso",
+                "\(home)/.local/bin/extractps3iso",
+                "\(home)/Applications/ps3iso-utils/extractps3iso",
+                "\(home)/Applications/makeps3iso/extractps3iso",
+                "/usr/local/bin/extractps3iso",
+                "/opt/homebrew/bin/extractps3iso",
+            ].first { FileManager.default.fileExists(atPath: $0) }
+            if let m = makePath, let _ = extractPath { return m }
+            return makePath  // partial install still shows as found
         case .extractXiso:
             return ["/opt/homebrew/bin/extract-xiso", "/usr/local/bin/extract-xiso"]
                 .first { FileManager.default.isExecutableFile(atPath: $0) }

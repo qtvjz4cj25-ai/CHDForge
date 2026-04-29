@@ -10,6 +10,7 @@ struct SettingsView: View {
     @State private var witDraftPath: String = ""
     @State private var repackinatorDraftPath: String = ""
     @State private var makePs3IsoDraftPath: String = ""
+    @State private var extractPs3IsoDraftPath: String = ""
     @State private var extractXisoDraftPath: String = ""
 
     var body: some View {
@@ -479,6 +480,61 @@ struct SettingsView: View {
             Section {
                 VStack(alignment: .leading, spacing: 10) {
                     VStack(alignment: .leading, spacing: 3) {
+                        Text("Custom extractps3iso path")
+                            .font(.system(.body, design: .rounded).weight(.semibold))
+                        Text("Leave blank to auto-detect: ~/bin → ~/.local/bin → PATH. Same package as makeps3iso.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack {
+                        TextField("~/bin/extractps3iso", text: $extractPs3IsoDraftPath)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.body, design: .monospaced))
+                        Button("Browse…") {
+                            let panel = NSOpenPanel()
+                            panel.canChooseFiles = true
+                            panel.canChooseDirectories = false
+                            panel.allowsMultipleSelection = false
+                            panel.message = "Select the extractps3iso executable"
+                            if panel.runModal() == .OK, let url = panel.url {
+                                extractPs3IsoDraftPath = url.path
+                            }
+                        }
+                    }
+
+                    HStack {
+                        Button("Save") {
+                            vm.customExtractPs3IsoPath = extractPs3IsoDraftPath
+                        }
+                        .buttonStyle(.borderedProminent)
+
+                        Button("Clear") {
+                            extractPs3IsoDraftPath = ""
+                            vm.customExtractPs3IsoPath = ""
+                        }
+
+                        Spacer()
+
+                        if !vm.customExtractPs3IsoPath.isEmpty {
+                            Label("Saved", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                                .font(.caption)
+                        } else {
+                            Label("Auto-detect active", systemImage: "magnifyingglass")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Label("extractps3iso Executable (PS3)", systemImage: "circle.grid.2x2.fill")
+            }
+
+            Section {
+                VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text("Custom extract-xiso path")
                             .font(.system(.body, design: .rounded).weight(.semibold))
                         Text("Leave blank to auto-detect via Homebrew. Install with: brew install extract-xiso")
@@ -830,6 +886,7 @@ struct SettingsView: View {
             witDraftPath = vm.customWitPath
             repackinatorDraftPath = vm.customRepackinatorPath
             makePs3IsoDraftPath = vm.customMakePs3IsoPath
+            extractPs3IsoDraftPath = vm.customExtractPs3IsoPath
             extractXisoDraftPath = vm.customExtractXisoPath
         }
     }

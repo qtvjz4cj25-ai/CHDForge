@@ -50,10 +50,10 @@ struct FolderScanner: Sendable {
             case (.repackinator, .extract):
                 output = url.deletingPathExtension().appendingPathExtension("iso")
             case (.makeps3iso, .create):
-                // Source is a directory — output ISO sits next to the folder
+                // Source is a PS3 game directory — output ISO sits next to it
                 output = url.appendingPathExtension("iso")
             case (.makeps3iso, .extract):
-                // Not supported; shouldn't occur
+                // Source is a PS3 ISO — output is a directory next to the ISO
                 output = url.deletingPathExtension()
             case (.extractXiso, .create):
                 // Source is an Xbox game directory — output ISO sits next to it
@@ -112,7 +112,8 @@ struct FolderScanner: Sendable {
         case (.wit, .extract):         extensions = ["wbfs"]
         case (.repackinator, .create): extensions = ["iso"]
         case (.repackinator, .extract):extensions = ["cci"]
-        case (.makeps3iso, _):         extensions = []
+        case (.makeps3iso, .create):   extensions = []   // handled above via PS3 directory scan
+        case (.makeps3iso, .extract):  extensions = ["iso"]
         case (.extractXiso, .extract): extensions = ["iso"]
         case (.extractXiso, .create):  extensions = []  // handled above via directory scan
         }

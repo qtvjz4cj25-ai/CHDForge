@@ -142,14 +142,14 @@ struct ContentView: View {
             Text("extract-xiso is required for Xbox OG XISO creation and extraction.\n\nInstall with Homebrew:\nbrew install extract-xiso\n\nOr build from source at github.com/xboxdev/extract-xiso")
         }
 
-        .alert("makeps3iso not found", isPresented: $vm.makePs3IsoMissing) {
+        .alert("ps3iso-utils not found", isPresented: $vm.makePs3IsoMissing) {
             Button("Open Downloads") {
                 NSWorkspace.shared.open(URL(string: "https://github.com/bucanero/ps3iso-utils/releases")!)
             }
             Button("Open Settings") { openSettings() }
             Button("Dismiss", role: .cancel) {}
         } message: {
-            Text("makeps3iso (ps3iso-utils) is required for PS3 ISO creation.\n\nDownload the tar from GitHub, extract it, chmod +x the binary, and set the path in Settings.")
+            Text("ps3iso-utils (makeps3iso + extractps3iso) is required for PS3 ISO conversions.\n\nDownload the tar from GitHub, extract it, chmod +x the binaries, and set the paths in Settings.")
         }
 
         // ── Sheets ──────────────────────────────────────────────────────────
@@ -312,14 +312,6 @@ private struct DetailView: View {
                             .foregroundStyle(.secondary)
                         Spacer()
                     }
-                } else {
-                    // Create-only (makeps3iso)
-                    HStack {
-                        Label("Create Only — PS3 Folder → ISO", systemImage: "archivebox.fill")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                    }
                 }
 
                 // Folder row
@@ -438,6 +430,8 @@ private struct DetailView: View {
         case (.repackinator, .extract): return "CCI → ISO"
         case (.extractXiso,  .create):  return "Xbox Folder → XISO"
         case (.extractXiso,  .extract): return "XISO → Xbox Folder"
+        case (.makeps3iso,   .create):  return "PS3 Folder → ISO"
+        case (.makeps3iso,   .extract): return "PS3 ISO → Folder"
         default:                        return ""
         }
     }
@@ -713,7 +707,7 @@ private struct DetailView: View {
         case (.repackinator, .create):  return "Scan for Xbox OG ISO files"
         case (.repackinator, .extract): return "Scan for CCI files"
         case (.makeps3iso, .create):    return "Scan for PS3 game folders (containing PS3_GAME/PARAM.SFO)"
-        case (.makeps3iso, .extract):   return "makeps3iso only supports create mode"
+        case (.makeps3iso, .extract):   return "Scan for PS3 ISO files"
         case (.extractXiso, .create):   return "Scan for Xbox game folders (containing default.xbe)"
         case (.extractXiso, .extract):  return "Scan for Xbox ISO files"
         }
@@ -765,7 +759,7 @@ private extension ToolKind {
         case .sevenZip:      return "Extract archives"
         case .wit:           return "Wii/GC · WBFS"
         case .repackinator:  return "Xbox OG · CCI"
-        case .makeps3iso:    return "PS3 · Folder → ISO"
+        case .makeps3iso:    return "PS3 · Folder ↔ ISO"
         case .extractXiso:   return "Xbox OG · XISO"
         }
     }

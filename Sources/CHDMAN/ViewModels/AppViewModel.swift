@@ -67,6 +67,7 @@ final class AppViewModel: ObservableObject {
     @AppStorage("customWitPath") var customWitPath: String = ""
     @AppStorage("customRepackinatorPath") var customRepackinatorPath: String = ""
     @AppStorage("customMakePs3IsoPath") var customMakePs3IsoPath: String = ""
+    @AppStorage("customExtractPs3IsoPath") var customExtractPs3IsoPath: String = ""
     @AppStorage("customExtractXisoPath") var customExtractXisoPath: String = ""
     @AppStorage("deleteSourceAfterConversion") var deleteSourceAfterConversion: Bool = false
     @AppStorage("notifyOnCompletion") var notifyOnCompletion: Bool = true
@@ -134,6 +135,7 @@ final class AppViewModel: ObservableObject {
     private let witLocator = WitLocator()
     private let repackinatorLocator = RepackinatorLocator()
     private let makePs3IsoLocator = MakePs3IsoLocator()
+    private let extractPs3IsoLocator = ExtractPs3IsoLocator()
     private let extractXisoLocator = ExtractXisoLocator()
     private let logStore = LogStore()
     private let maxGlobalLogCharacters = 200_000
@@ -232,14 +234,21 @@ final class AppViewModel: ObservableObject {
                 repackinatorMissing = true
             }
         case .makeps3iso:
-            do {
-                let path = try await makePs3IsoLocator.locate(
-                    customPath: customMakePs3IsoPath.isEmpty ? nil : customMakePs3IsoPath
-                )
-                let isValid = await makePs3IsoLocator.verify(path: path)
-                makePs3IsoMissing = !isValid
-            } catch {
-                makePs3IsoMissing = true
+            // Check whichever binary is needed for the current mode
+            if appMode == .create {
+                do {
+                    let path = try await makePs3IsoLocator.locate(
+                        customPath: customMakePs3IsoPath.isEmpty ? nil : customMakePs3IsoPath
+                    )
+                    makePs3IsoMissing = !(await makePs3IsoLocator.verify(path: path))
+                } catch { makePs3IsoMissing = true }
+            } else {
+                do {
+                    let path = try await extractPs3IsoLocator.locate(
+                        customPath: customExtractPs3IsoPath.isEmpty ? nil : customExtractPs3IsoPath
+                    )
+                    makePs3IsoMissing = !(await extractPs3IsoLocator.verify(path: path))
+                } catch { makePs3IsoMissing = true }
             }
         case .extractXiso:
             do {
@@ -606,6 +615,9 @@ final class AppViewModel: ObservableObject {
 
         case .makeps3iso:
             let makeps3isoPath: String
+            let extractps3isoPath: String
+
+            // Always locate makeps3iso (needed for create)
             do {
                 makeps3isoPath = try await makePs3IsoLocator.locate(
                     customPath: customMakePs3IsoPath.isEmpty ? nil : customMakePs3IsoPath
@@ -617,20 +629,44 @@ final class AppViewModel: ObservableObject {
                 return
             }
 
-            guard await makePs3IsoLocator.verify(path: makeps3isoPath) else {
+            // Always locate extractps3iso (needed for extract)
+            do {
+                extractps3isoPath = try await extractPs3IsoLocator.locate(
+                    customPath: customExtractPs3IsoPath.isEmpty ? nil : customExtractPs3IsoPath
+                )
+            } catch {
                 makePs3IsoAlertMessage =
-                    "The selected executable does not appear to be a valid makeps3iso binary."
+                    "\(error.localizedDescription)\n\nDownload from:\ngithub.com/bucanero/ps3iso-utils/releases"
                 showMakePs3IsoAlert = true
                 return
             }
 
+            // Verify the binary that will actually be used for the current mode
+            if appMode == .create {
+                guard await makePs3IsoLocator.verify(path: makeps3isoPath) else {
+                    makePs3IsoAlertMessage =
+                        "The selected executable does not appear to be a valid makeps3iso binary."
+                    showMakePs3IsoAlert = true
+                    return
+                }
+            } else {
+                guard await extractPs3IsoLocator.verify(path: extractps3isoPath) else {
+                    makePs3IsoAlertMessage =
+                        "The selected executable does not appear to be a valid extractps3iso binary."
+                    showMakePs3IsoAlert = true
+                    return
+                }
+            }
+
             chdmanCapabilities = nil
-            let ps3Line = "[\(timestamp())] makeps3iso: \(makeps3isoPath)"
+            let ps3Line = "[\(timestamp())] makeps3iso: \(makeps3isoPath) | extractps3iso: \(extractps3isoPath)"
             appendGlobalLog(ps3Line)
             Task { await logStore.appendGlobal(ps3Line) }
 
             let ps3Eng = MakePs3IsoEngine(
                 makeps3isoPath: makeps3isoPath,
+                extractps3isoPath: extractps3isoPath,
+                mode: appMode,
                 concurrency: concurrency,
                 jobs: jobs,
                 logStore: logStore,

@@ -53,10 +53,7 @@ enum ToolKind: String, CaseIterable, Identifiable, Sendable {
 
     /// Whether this tool supports Extract mode.
     var supportsExtract: Bool {
-        switch self {
-        case .makeps3iso: return false
-        default:          return true
-        }
+        return true  // all tools support extract (makeps3iso uses extractps3iso)
     }
 
     /// Whether this tool's extract output is a directory rather than a file.
