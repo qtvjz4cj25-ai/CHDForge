@@ -186,9 +186,21 @@ class BatchEngine: @unchecked Sendable {
         let fm = FileManager.default
 
         // Already-done check
-        if fm.fileExists(atPath: snapshot.outputPath) {
-            let size = (try? fm.attributesOfItem(atPath: snapshot.outputPath))?[.size] as? Int ?? 0
-            if size > 0 {
+        var isOutputDir: ObjCBool = false
+        if fm.fileExists(atPath: snapshot.outputPath, isDirectory: &isOutputDir) {
+            let alreadyDone: Bool
+            if isOutputDir.boolValue {
+                // Directory output (7z extract, extractXiso, makeps3iso extract):
+                // only skip if the directory is non-empty.
+                let contents = (try? fm.contentsOfDirectory(atPath: snapshot.outputPath)) ?? []
+                alreadyDone = !contents.isEmpty
+            } else {
+                // File output: skip if the file has content.
+                let size = (try? fm.attributesOfItem(atPath: snapshot.outputPath))?[.size] as? Int ?? 0
+                alreadyDone = size > 0
+            }
+
+            if alreadyDone {
                 let msg = "[\(ts())] [SKIP] \(snapshot.filename) — output already exists."
                 await setJob(job, status: .skipped, detail: "Output exists", log: msg)
                 emit(msg)
