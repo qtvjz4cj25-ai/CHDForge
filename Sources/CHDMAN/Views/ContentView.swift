@@ -120,6 +120,20 @@ struct ContentView: View {
             Text("Repackinator is required for Xbox OG CCI conversions.\n\nDownload the osx-arm64 or osx-x64 tar from GitHub, then set the path in Settings.")
         }
 
+        .alert("makeps3iso not available", isPresented: $vm.showMakePs3IsoAlert) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(vm.makePs3IsoAlertMessage) }
+
+        .alert("makeps3iso not found", isPresented: $vm.makePs3IsoMissing) {
+            Button("Open Downloads") {
+                NSWorkspace.shared.open(URL(string: "https://github.com/bucanero/ps3iso-utils/releases")!)
+            }
+            Button("Open Settings") { openSettings() }
+            Button("Dismiss", role: .cancel) {}
+        } message: {
+            Text("makeps3iso (ps3iso-utils) is required for PS3 ISO creation.\n\nDownload the tar from GitHub, extract it, chmod +x the binary, and set the path in Settings.")
+        }
+
         // ── Sheets ──────────────────────────────────────────────────────────
         .sheet(isPresented: $vm.showSetupWizard) {
             SetupWizardView(onDismiss: { vm.showSetupWizard = false })
@@ -252,6 +266,7 @@ private struct SidebarView: View {
         case .sevenZip:     return .green
         case .wit:          return .orange
         case .repackinator: return Color(red: 0.7, green: 0.2, blue: 0.2)
+        case .makeps3iso:   return Color(red: 0.0, green: 0.45, blue: 0.85)
         }
     }
 }
@@ -268,12 +283,20 @@ private struct DetailView: View {
             // ── Header: mode + folder ──────────────────────────────────────
             VStack(spacing: 10) {
                 // Mode toggle
-                if vm.selectedTool.supportsCreate {
+                if vm.selectedTool.supportsCreate && vm.selectedTool.supportsExtract {
                     modeToggle
-                } else {
-                    // Extract-only label for 7z
+                } else if !vm.selectedTool.supportsCreate {
+                    // Extract-only (7z)
                     HStack {
                         Label("Extract Only", systemImage: "archivebox.circle")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                } else {
+                    // Create-only (makeps3iso)
+                    HStack {
+                        Label("Create Only — PS3 Folder → ISO", systemImage: "archivebox.fill")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -666,6 +689,8 @@ private struct DetailView: View {
         case (.wit,         .extract): return "Scan for WBFS files"
         case (.repackinator, .create):  return "Scan for Xbox OG ISO files"
         case (.repackinator, .extract): return "Scan for CCI files"
+        case (.makeps3iso, .create):    return "Scan for PS3 game folders (containing PS3_GAME/PARAM.SFO)"
+        case (.makeps3iso, .extract):   return "makeps3iso only supports create mode"
         }
     }
 
@@ -715,6 +740,7 @@ private extension ToolKind {
         case .sevenZip:      return "Extract archives"
         case .wit:           return "Wii/GC · WBFS"
         case .repackinator:  return "Xbox OG · CCI"
+        case .makeps3iso:    return "PS3 · Folder → ISO"
         }
     }
 }

@@ -49,6 +49,12 @@ struct FolderScanner: Sendable {
                 output = url.deletingPathExtension().appendingPathExtension("cci")
             case (.repackinator, .extract):
                 output = url.deletingPathExtension().appendingPathExtension("iso")
+            case (.makeps3iso, .create):
+                // Source is a directory — output ISO sits next to the folder
+                output = url.appendingPathExtension("iso")
+            case (.makeps3iso, .extract):
+                // Not supported; shouldn't occur
+                output = url.deletingPathExtension()
             }
             return ConversionJob(sourceURL: url, sourceType: type, outputURL: output)
         }
@@ -77,6 +83,11 @@ struct FolderScanner: Sendable {
         var seen: Set<String> = []
 
         let extensions: Set<String>
+        // PS3 folder scanning is directory-based — handled separately
+        if tool == .makeps3iso && mode == .create {
+            return enumeratePS3GameFolders(folder: folder, recursive: recursive)
+        }
+
         switch (tool, mode) {
         case (.chdman, .create):       extensions = ["iso", "cue", "gdi"]
         case (.chdman, .extract):      extensions = ["chd"]
@@ -88,10 +99,11 @@ struct FolderScanner: Sendable {
         case (.nsz, .extract):         extensions = ["nsz", "xcz"]
         case (.sevenZip, .extract):    extensions = ["7z", "zip", "rar"]
         case (.sevenZip, .create):     extensions = []
-        case (.wit, .create):               extensions = ["iso"]
-        case (.wit, .extract):              extensions = ["wbfs"]
-        case (.repackinator, .create):      extensions = ["iso"]
-        case (.repackinator, .extract):     extensions = ["cci"]
+        case (.wit, .create):          extensions = ["iso"]
+        case (.wit, .extract):         extensions = ["wbfs"]
+        case (.repackinator, .create): extensions = ["iso"]
+        case (.repackinator, .extract):extensions = ["cci"]
+        case (.makeps3iso, _):         extensions = []
         }
 
         for case let url as URL in enumerator {
@@ -120,7 +132,7 @@ struct FolderScanner: Sendable {
             case "rar": type = .rar
             case "wbfs": type = .wbfs
             case "cci":  type = .cci
-            default:    continue
+            default:     continue
             }
 
             let key = url.standardizedFileURL.path
@@ -154,8 +166,46 @@ struct FolderScanner: Sendable {
         case .sevenZ: return 12
         case .zip: return 13
         case .rar: return 14
-        case .wbfs: return 15
-        case .cci:  return 16
+        case .wbfs:   return 15
+        case .cci:    return 16
+        case .ps3dir: return 17
         }
+    }
+
+    // MARK: - PS3 game folder enumeration
+
+    /// Scans for subdirectories containing PS3_GAME/PARAM.SFO — these are PS3 JB game folders.
+    private static func enumeratePS3GameFolders(folder: URL, recursive: Bool) -> [(URL, SourceType)] {
+        let fm = FileManager.default
+        var results: [(URL, SourceType)] = []
+        var seen: Set<String> = []
+
+        func scanLevel(_ dir: URL, depth: Int) {
+            guard let children = try? fm.contentsOfDirectory(
+                at: dir,
+                includingPropertiesForKeys: [.isDirectoryKey],
+                options: [.skipsHiddenFiles]
+            ) else { return }
+
+            for child in children.sorted(by: { $0.path < $1.path }) {
+                guard (try? child.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+                else { continue }
+
+                // Check if this directory is a PS3 game folder
+                let paramSfo = child.appendingPathComponent("PS3_GAME/PARAM.SFO")
+                if fm.fileExists(atPath: paramSfo.path) {
+                    let key = child.standardizedFileURL.path
+                    if !seen.contains(key) {
+                        seen.insert(key)
+                        results.append((child, .ps3dir))
+                    }
+                } else if recursive && depth < 4 {
+                    scanLevel(child, depth: depth + 1)
+                }
+            }
+        }
+
+        scanLevel(folder, depth: 0)
+        return results
     }
 }

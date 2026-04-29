@@ -10,6 +10,7 @@ enum ToolKind: String, CaseIterable, Identifiable, Sendable {
     case sevenZip       = "7z"
     case wit            = "wit"
     case repackinator   = "repackinator"
+    case makeps3iso     = "makeps3iso"
 
     var id: String { rawValue }
 
@@ -22,6 +23,7 @@ enum ToolKind: String, CaseIterable, Identifiable, Sendable {
         case .sevenZip:       return "7z (Archives)"
         case .wit:            return "WBFS (Wii/GC)"
         case .repackinator:   return "CCI (Xbox OG)"
+        case .makeps3iso:     return "ISO (PS3)"
         }
     }
 
@@ -34,6 +36,7 @@ enum ToolKind: String, CaseIterable, Identifiable, Sendable {
         case .sevenZip:       return "doc.zipper"
         case .wit:            return "opticaldisc.fill"
         case .repackinator:   return "xmark.seal.fill"
+        case .makeps3iso:     return "circle.grid.2x2.fill"
         }
     }
 
@@ -42,6 +45,14 @@ enum ToolKind: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .sevenZip: return false
         default:        return true
+        }
+    }
+
+    /// Whether this tool supports Extract mode.
+    var supportsExtract: Bool {
+        switch self {
+        case .makeps3iso: return false
+        default:          return true
         }
     }
 }
@@ -64,8 +75,9 @@ enum SourceType: String, CaseIterable, Hashable, Sendable {
     case sevenZ = "7Z"
     case zip = "ZIP"
     case rar = "RAR"
-    case wbfs = "WBFS"
-    case cci  = "CCI"
+    case wbfs   = "WBFS"
+    case cci    = "CCI"
+    case ps3dir = "PS3DIR"
 }
 
 // MARK: - AppMode

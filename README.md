@@ -23,12 +23,13 @@ A macOS app for batch converting disc images and ROM archives across multiple em
 | **7z** | Extract | 7Z, ZIP, RAR → files | Any ROM archive set |
 | **Repackinator** | Create | ISO → CCI | Original Xbox |
 | **Repackinator** | Extract | CCI → ISO | |
+| **makeps3iso** | Create | PS3 Folder → ISO | PlayStation 3 (JB) |
 
 ---
 
 ## Features
 
-- **8 conversion backends** — one app for your entire ROM library
+- **9 conversion backends** — one app for your entire ROM library
 - **Bidirectional** — create compressed images or extract back to original
 - **First-launch Setup Wizard** — detects missing tools and installs them in one click
 - **Artwork Scraper** — fetch box art, screenshots, and wheel art from ScreenScraper.fr and generate `gamelist.xml` for EmulationStation, ES-DE, or Images Only
@@ -199,6 +200,41 @@ Download the `Repackinator-osx-arm64.tar` (Apple Silicon) or `Repackinator-osx-x
 
 ---
 
+#### makeps3iso — ISO (PlayStation 3 JB Folders)
+makeps3iso is **not on Homebrew**. Download the pre-built binary from GitHub:
+
+[github.com/bucanero/ps3iso-utils/releases](https://github.com/bucanero/ps3iso-utils/releases)
+
+Download the `build.tar`, extract it, then:
+
+```bash
+# Extract the tar
+mkdir -p ~/bin
+tar -xf build.tar -C ~/bin
+
+# The binary may be nested inside a folder — check:
+ls ~/bin
+
+# Make it executable (the binary is named makeps3iso)
+chmod +x ~/bin/makeps3iso
+
+# Remove macOS quarantine if needed
+xattr -d com.apple.quarantine ~/bin/makeps3iso
+```
+
+Test it:
+```bash
+~/bin/makeps3iso
+```
+
+You should see usage output. Then set the path in **Settings → makeps3iso Path**.
+
+> **Usage:** Point CHDForge at the folder containing your PS3 game folders (directories that have `PS3_GAME/PARAM.SFO` inside). CHDForge scans for those automatically when you select the makeps3iso tool.
+
+**If macOS blocks it** (Gatekeeper), go to **System Settings → Privacy & Security** and click **Allow Anyway** next to makeps3iso.
+
+---
+
 ### Verify Everything Is Working
 
 After installing, launch CHDForge. The **Setup Wizard** will check each tool automatically. You can also select a tool in the sidebar — the app checks for its binary and shows an alert with instructions if it can't find it.
@@ -250,6 +286,9 @@ All formats use **lossless** compression — gameplay is bit-for-bit identical r
 | Fast | CCI only | Fastest, no padding removal |
 | Balanced | CCI + scrub | Removes padding sectors |
 | Smallest | CCI + trimscrub | Scrub and trim for smallest size |
+
+### makeps3iso (PS3 ISO)
+No compression presets — makeps3iso performs a straight folder-to-ISO repack with no configurable compression.
 
 ---
 

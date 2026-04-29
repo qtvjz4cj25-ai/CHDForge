@@ -33,7 +33,7 @@ final class ConversionEngine: BatchEngine {
         case .cue: return await convertCUE(job, snapshot: snapshot)
         case .gdi: return await convertGDI(job, snapshot: snapshot)
         case .chd: return await extractCHD(job, snapshot: snapshot)
-        case .gcz, .rvz, .wia, .cso, .nsp, .xci, .nsz, .xcz, .sevenZ, .zip, .rar, .wbfs, .cci:
+        case .gcz, .rvz, .wia, .cso, .nsp, .xci, .nsz, .xcz, .sevenZ, .zip, .rar, .wbfs, .cci, .ps3dir:
             let msg = "[\(ts())] [FAIL] \(snapshot.filename) — unsupported source type for chdman."
             await setJob(job, status: .failed, detail: "Unsupported source type", log: msg)
             emit(msg)

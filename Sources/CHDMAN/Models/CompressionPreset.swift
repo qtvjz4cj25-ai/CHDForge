@@ -58,6 +58,8 @@ enum CompressionPreset: String, CaseIterable, Identifiable, Sendable {
             return "CCI — compressed + scrub padding"
         case (.smallest, .repackinator):
             return "CCI — compressed + trim scrub (smallest)"
+        case (_, .makeps3iso):
+            return "Not applicable — straight folder-to-ISO repack"
         }
     }
 

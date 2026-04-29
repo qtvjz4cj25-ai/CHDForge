@@ -59,6 +59,12 @@ private let allTools: [ToolSetupInfo] = [
           installMethod: .manual(
             url: "https://github.com/Team-Resurgent/Repackinator/releases/latest",
             hint: "Download the osx-arm64 or osx-x64 tar, extract, then set the path in Settings.")),
+    .init(id: .makeps3iso,
+          name: "makeps3iso",
+          subtitle: "PS3 Folder → ISO — download required",
+          installMethod: .manual(
+            url: "https://github.com/bucanero/ps3iso-utils/releases",
+            hint: "Download the tar, extract it, chmod +x the binary, then set the path in Settings.")),
 ]
 
 // MARK: - Tool status
@@ -413,6 +419,13 @@ struct SetupWizardView: View {
                 "\(home)/Applications/Repackinator/repackinator",
                 "\(home)/Applications/Repackinator/repackinator.shell",
                 "/usr/local/bin/repackinator",
+            ].first { FileManager.default.fileExists(atPath: $0) }
+        case .makeps3iso:
+            return [
+                "\(home)/bin/makeps3iso",
+                "\(home)/.local/bin/makeps3iso",
+                "\(home)/Applications/ps3iso-utils/makeps3iso",
+                "/usr/local/bin/makeps3iso",
             ].first { FileManager.default.fileExists(atPath: $0) }
         }
     }

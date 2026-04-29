@@ -41,6 +41,9 @@ final class AppViewModel: ObservableObject {
     @Published var showRepackinatorAlert: Bool = false
     @Published var repackinatorAlertMessage: String = ""
     @Published var repackinatorMissing: Bool = false
+    @Published var showMakePs3IsoAlert: Bool = false
+    @Published var makePs3IsoAlertMessage: String = ""
+    @Published var makePs3IsoMissing: Bool = false
     @Published var chdmanCapabilities: ChdmanCapabilities?
 
     // MARK: - Persisted settings
@@ -60,6 +63,7 @@ final class AppViewModel: ObservableObject {
     @AppStorage("customSevenZipPath") var customSevenZipPath: String = ""
     @AppStorage("customWitPath") var customWitPath: String = ""
     @AppStorage("customRepackinatorPath") var customRepackinatorPath: String = ""
+    @AppStorage("customMakePs3IsoPath") var customMakePs3IsoPath: String = ""
     @AppStorage("deleteSourceAfterConversion") var deleteSourceAfterConversion: Bool = false
     @AppStorage("notifyOnCompletion") var notifyOnCompletion: Bool = true
     @AppStorage("compressionPreset") private var compressionPresetRawValue: String = CompressionPreset.balanced.rawValue
@@ -125,6 +129,7 @@ final class AppViewModel: ObservableObject {
     private let sevenZipLocator = SevenZipLocator()
     private let witLocator = WitLocator()
     private let repackinatorLocator = RepackinatorLocator()
+    private let makePs3IsoLocator = MakePs3IsoLocator()
     private let logStore = LogStore()
     private let maxGlobalLogCharacters = 200_000
 
@@ -149,6 +154,7 @@ final class AppViewModel: ObservableObject {
         sevenZipMissing = false
         witMissing = false
         repackinatorMissing = false
+        makePs3IsoMissing = false
 
         switch selectedTool {
         case .chdman:
@@ -219,15 +225,28 @@ final class AppViewModel: ObservableObject {
             } catch {
                 repackinatorMissing = true
             }
+        case .makeps3iso:
+            do {
+                let path = try await makePs3IsoLocator.locate(
+                    customPath: customMakePs3IsoPath.isEmpty ? nil : customMakePs3IsoPath
+                )
+                let isValid = await makePs3IsoLocator.verify(path: path)
+                makePs3IsoMissing = !isValid
+            } catch {
+                makePs3IsoMissing = true
+            }
         }
     }
 
     func handleToolSelectionChange() async {
         chdmanCapabilities = nil
         clearList()
-        // 7zip only supports extract mode
+        // Enforce mode constraints
         if !selectedTool.supportsCreate && appMode == .create {
             appMode = .extract
+        }
+        if !selectedTool.supportsExtract && appMode == .extract {
+            appMode = .create
         }
         await checkSelectedToolAvailability()
     }
@@ -568,6 +587,45 @@ final class AppViewModel: ObservableObject {
                 }
             }
             engineToRun = repackEng
+
+        case .makeps3iso:
+            let makeps3isoPath: String
+            do {
+                makeps3isoPath = try await makePs3IsoLocator.locate(
+                    customPath: customMakePs3IsoPath.isEmpty ? nil : customMakePs3IsoPath
+                )
+            } catch {
+                makePs3IsoAlertMessage =
+                    "\(error.localizedDescription)\n\nDownload from:\ngithub.com/bucanero/ps3iso-utils/releases"
+                showMakePs3IsoAlert = true
+                return
+            }
+
+            guard await makePs3IsoLocator.verify(path: makeps3isoPath) else {
+                makePs3IsoAlertMessage =
+                    "The selected executable does not appear to be a valid makeps3iso binary."
+                showMakePs3IsoAlert = true
+                return
+            }
+
+            chdmanCapabilities = nil
+            let ps3Line = "[\(timestamp())] makeps3iso: \(makeps3isoPath)"
+            appendGlobalLog(ps3Line)
+            Task { await logStore.appendGlobal(ps3Line) }
+
+            let ps3Eng = MakePs3IsoEngine(
+                makeps3isoPath: makeps3isoPath,
+                concurrency: concurrency,
+                jobs: jobs,
+                logStore: logStore,
+                deleteSource: deleteSourceAfterConversion
+            )
+            ps3Eng.onLogLine = { [weak self] line in
+                Task { @MainActor [weak self] in
+                    self?.appendGlobalLog(line)
+                }
+            }
+            engineToRun = ps3Eng
         }
 
         let startMsg = startMessage(concurrency: concurrency)
@@ -702,6 +760,10 @@ final class AppViewModel: ObservableObject {
             return "ISO files (Xbox OG)"
         case (.repackinator, .extract):
             return "CCI files"
+        case (.makeps3iso, .create):
+            return "PS3 game folders"
+        case (.makeps3iso, .extract):
+            return "PS3 ISO files"
         }
     }
 

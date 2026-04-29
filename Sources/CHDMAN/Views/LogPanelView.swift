@@ -174,8 +174,9 @@ struct JobLogSheet: View {
         case .sevenZ: return Color(red: 0.4, green: 0.7, blue: 0.3)
         case .zip: return Color(red: 0.95, green: 0.7, blue: 0.2)
         case .rar: return Color(red: 0.7, green: 0.3, blue: 0.6)
-        case .wbfs: return Color(red: 0.3, green: 0.6, blue: 0.9)
-        case .cci:  return Color(red: 0.55, green: 0.15, blue: 0.15)
+        case .wbfs:   return Color(red: 0.3, green: 0.6, blue: 0.9)
+        case .cci:    return Color(red: 0.55, green: 0.15, blue: 0.15)
+        case .ps3dir: return Color(red: 0.0, green: 0.45, blue: 0.85)
         }
     }
 }
