@@ -158,7 +158,14 @@ final class ConversionEngine: BatchEngine {
     // MARK: - CHD extraction
 
     private func extractCHD(_ job: ConversionJob, snapshot: JobSnapshot) async -> Bool {
-        // Try extractcd first (covers CD-based CHDs: CUE/BIN, GDI)
+        // snapshot.outputPath is <name>.cue (the entry-point for CD images).
+        // DVD-type CHDs extract to <name>.iso instead; check for it up-front so
+        // we don't re-run an already-completed DVD extraction on subsequent scans.
+        let isoOutput = (snapshot.outputPath as NSString).deletingPathExtension + ".iso"
+        if outputValid(isoOutput) { return true }
+
+        // Try extractcd first (covers CD-based CHDs: BIN+CUE, GDI).
+        // extractcd writes <name>.bin alongside the .cue automatically.
         if capabilities.hasExtractCD {
             if let r = await runChdman(job: job, snapshot: snapshot, args: ["extractcd", "-i", snapshot.path, "-o", snapshot.outputPath]),
                r.succeeded, outputValid(snapshot.outputPath) {
@@ -175,15 +182,14 @@ final class ConversionEngine: BatchEngine {
                 return false
             }
 
-            let retryMsg = "[\(ts())] [RETRY] \(snapshot.filename) — extractcd failed, trying extractdvd."
+            let retryMsg = "[\(ts())] [RETRY] \(snapshot.filename) — extractcd failed, trying extractdvd (DVD/ISO-type CHD)."
             await appendLog(job, text: retryMsg + "\n")
             emit(retryMsg)
             Task { await logStore.appendGlobal(retryMsg) }
         }
 
-        // Try extractdvd (covers DVD/ISO-based CHDs)
+        // Try extractdvd (covers DVD/ISO-based CHDs); output goes to .iso.
         if capabilities.hasExtractDVD {
-            let isoOutput = snapshot.outputPath.replacingOccurrences(of: ".bin", with: ".iso")
             if let r = await runChdman(job: job, snapshot: snapshot, args: ["extractdvd", "-i", snapshot.path, "-o", isoOutput]),
                r.succeeded, outputValid(isoOutput) {
                 return true

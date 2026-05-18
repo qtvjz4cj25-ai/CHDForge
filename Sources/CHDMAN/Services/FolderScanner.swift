@@ -18,7 +18,9 @@ struct FolderScanner: Sendable {
             case (.chdman, .create):
                 output = url.deletingPathExtension().appendingPathExtension("chd")
             case (.chdman, .extract):
-                output = url.deletingPathExtension().appendingPathExtension("bin")
+                // extractcd produces a .cue + .bin pair; .cue is the entry-point file.
+                // extractdvd produces .iso (handled inside ConversionEngine).
+                output = url.deletingPathExtension().appendingPathExtension("cue")
             case (.dolphinTool, .create):
                 output = url.deletingPathExtension().appendingPathExtension("rvz")
             case (.dolphinTool, .extract):
