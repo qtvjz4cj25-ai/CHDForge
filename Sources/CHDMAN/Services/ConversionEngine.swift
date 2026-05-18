@@ -9,11 +9,13 @@ final class ConversionEngine: BatchEngine {
     let chdmanPath: String
     let capabilities: ChdmanCapabilities
     let compressionPreset: CompressionPreset
+    let discMode: ChdDiscMode
 
     init(
         chdmanPath: String,
         capabilities: ChdmanCapabilities,
         compressionPreset: CompressionPreset,
+        discMode: ChdDiscMode = .auto,
         concurrency: Int,
         jobs: [ConversionJob],
         logStore: LogStore,
@@ -22,6 +24,7 @@ final class ConversionEngine: BatchEngine {
         self.chdmanPath = chdmanPath
         self.capabilities = capabilities
         self.compressionPreset = compressionPreset
+        self.discMode = discMode
         super.init(concurrency: concurrency, jobs: jobs, logStore: logStore, deleteSource: deleteSource)
     }
 
@@ -64,45 +67,78 @@ final class ConversionEngine: BatchEngine {
     // MARK: - ISO conversion
 
     private func convertISO(_ job: ConversionJob, snapshot: JobSnapshot) async -> Bool {
-        // Attempt 1: createdvd (preferred for ISOs)
-        if capabilities.hasCreateDVD {
-            if let r = await runChdman(job: job, snapshot: snapshot, args: commandArgs(command: "createdvd", inputPath: snapshot.path, outputPath: snapshot.outputPath)),
-               r.succeeded, outputValid(snapshot.outputPath) {
-                return true
-            }
-            if wasCancelled() { return false }
-            removeInvalidOutput(snapshot.outputPath)
+        switch discMode {
+        case .cd:
+            return await runCreateCD(job, snapshot: snapshot)
+        case .dvd:
+            return await runCreateDVD(job, snapshot: snapshot)
+        case .auto:
+            // Auto: try createdvd first (preferred for PS2/DVD games), fall back to createcd.
+            if capabilities.hasCreateDVD {
+                if let r = await runChdman(job: job, snapshot: snapshot, args: commandArgs(command: "createdvd", inputPath: snapshot.path, outputPath: snapshot.outputPath)),
+                   r.succeeded, outputValid(snapshot.outputPath) {
+                    return true
+                }
+                if wasCancelled() { return false }
+                removeInvalidOutput(snapshot.outputPath)
 
-            if !capabilities.hasCreateCD {
-                let msg = "[\(ts())] [FAIL] \(snapshot.filename) — createdvd failed and createcd unavailable."
-                await setJob(job, status: .failed, detail: "createdvd failed", log: msg)
-                emit(msg)
-                Task { await logStore.appendGlobal(msg) }
-                return false
+                if capabilities.hasCreateCD {
+                    let retryMsg = "[\(ts())] [RETRY] \(snapshot.filename) — createdvd failed, trying createcd."
+                    await appendLog(job, text: retryMsg + "\n")
+                    emit(retryMsg)
+                    Task { await logStore.appendGlobal(retryMsg) }
+                } else {
+                    let msg = "[\(ts())] [FAIL] \(snapshot.filename) — createdvd failed and createcd unavailable."
+                    await setJob(job, status: .failed, detail: "createdvd failed", log: msg)
+                    emit(msg)
+                    Task { await logStore.appendGlobal(msg) }
+                    return false
+                }
             }
-
-            let retryMsg = "[\(ts())] [RETRY] \(snapshot.filename) — createdvd failed, trying createcd."
-            await appendLog(job, text: retryMsg + "\n")
-            emit(retryMsg)
-            Task { await logStore.appendGlobal(retryMsg) }
+            return await runCreateCD(job, snapshot: snapshot)
         }
+    }
 
-        // Attempt 2: createcd
-        if capabilities.hasCreateCD {
-            if let r = await runChdman(job: job, snapshot: snapshot, args: commandArgs(command: "createcd", inputPath: snapshot.path, outputPath: snapshot.outputPath)),
-               r.succeeded, outputValid(snapshot.outputPath) {
-                return true
-            }
-            if wasCancelled() { return false }
-            removeInvalidOutput(snapshot.outputPath)
+    private func runCreateCD(_ job: ConversionJob, snapshot: JobSnapshot) async -> Bool {
+        guard capabilities.hasCreateCD else {
+            let msg = "[\(ts())] [FAIL] \(snapshot.filename) — createcd not available in this chdman build."
+            await setJob(job, status: .failed, detail: "createcd unavailable", log: msg)
+            emit(msg)
+            Task { await logStore.appendGlobal(msg) }
+            return false
         }
+        guard let r = await runChdman(job: job, snapshot: snapshot, args: commandArgs(command: "createcd", inputPath: snapshot.path, outputPath: snapshot.outputPath)),
+              r.succeeded, outputValid(snapshot.outputPath) else {
+            removeInvalidOutput(snapshot.outputPath)
+            if wasCancelled() { return false }
+            let msg = "[\(ts())] [FAIL] \(snapshot.filename) — createcd failed."
+            await setJob(job, status: .failed, detail: "createcd failed", log: msg)
+            emit(msg)
+            Task { await logStore.appendGlobal(msg) }
+            return false
+        }
+        return true
+    }
 
-        if wasCancelled() { return false }
-        let failMsg = "[\(ts())] [FAIL] \(snapshot.filename) — all conversion attempts failed."
-        await setJob(job, status: .failed, detail: "All attempts failed", log: failMsg)
-        emit(failMsg)
-        Task { await logStore.appendGlobal(failMsg) }
-        return false
+    private func runCreateDVD(_ job: ConversionJob, snapshot: JobSnapshot) async -> Bool {
+        guard capabilities.hasCreateDVD else {
+            let msg = "[\(ts())] [FAIL] \(snapshot.filename) — createdvd not available in this chdman build."
+            await setJob(job, status: .failed, detail: "createdvd unavailable", log: msg)
+            emit(msg)
+            Task { await logStore.appendGlobal(msg) }
+            return false
+        }
+        guard let r = await runChdman(job: job, snapshot: snapshot, args: commandArgs(command: "createdvd", inputPath: snapshot.path, outputPath: snapshot.outputPath)),
+              r.succeeded, outputValid(snapshot.outputPath) else {
+            removeInvalidOutput(snapshot.outputPath)
+            if wasCancelled() { return false }
+            let msg = "[\(ts())] [FAIL] \(snapshot.filename) — createdvd failed."
+            await setJob(job, status: .failed, detail: "createdvd failed", log: msg)
+            emit(msg)
+            Task { await logStore.appendGlobal(msg) }
+            return false
+        }
+        return true
     }
 
     // MARK: - CUE conversion

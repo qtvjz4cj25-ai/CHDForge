@@ -89,6 +89,25 @@ enum SourceType: String, CaseIterable, Hashable, Sendable {
     case xboxDir = "XBDIR"
 }
 
+// MARK: - ChdDiscMode
+
+/// Controls which chdman create command is used for ISO inputs.
+enum ChdDiscMode: String, CaseIterable, Identifiable, Sendable {
+    case auto = "auto"   // try createdvd first, fall back to createcd
+    case cd   = "cd"     // always use createcd (PS1, Saturn, single-track CD games)
+    case dvd  = "dvd"    // always use createdvd (PS2, DVD-based games)
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .auto: return "Auto"
+        case .cd:   return "CD"
+        case .dvd:  return "DVD"
+        }
+    }
+}
+
 // MARK: - AppMode
 
 enum AppMode: String, CaseIterable, Identifiable, Sendable {

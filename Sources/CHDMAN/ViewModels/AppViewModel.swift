@@ -78,6 +78,13 @@ final class AppViewModel: ObservableObject {
         set { compressionPresetRawValue = newValue.rawValue }
     }
 
+    @AppStorage("chdDiscMode") private var chdDiscModeRawValue: String = ChdDiscMode.auto.rawValue
+
+    var chdDiscMode: ChdDiscMode {
+        get { ChdDiscMode(rawValue: chdDiscModeRawValue) ?? .auto }
+        set { chdDiscModeRawValue = newValue.rawValue }
+    }
+
     // MARK: - Computed counts / progress
 
     var totalCount: Int      { jobs.count }
@@ -358,6 +365,7 @@ final class AppViewModel: ObservableObject {
                 chdmanPath: chdmanPath,
                 capabilities: caps,
                 compressionPreset: compressionPreset,
+                discMode: chdDiscMode,
                 concurrency: concurrency,
                 jobs: jobs,
                 logStore: logStore,

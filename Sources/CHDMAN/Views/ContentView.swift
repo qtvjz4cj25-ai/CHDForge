@@ -542,6 +542,12 @@ private struct DetailView: View {
                     .help(vm.compressionPreset.detail(for: vm.selectedTool))
             }
 
+            if vm.selectedTool == .chdman && vm.appMode == .create {
+                Divider().frame(height: 18)
+                chdDiscModeChip
+                    .help("Disc type: CD = createcd (PS1, Saturn), DVD = createdvd (PS2, DVD), Auto = try DVD first then CD")
+            }
+
             Divider().frame(height: 18)
 
             // Start
@@ -622,6 +628,34 @@ private struct DetailView: View {
             HStack(spacing: 5) {
                 Image(systemName: "shippingbox.circle").font(.system(size: 10)).foregroundStyle(.secondary)
                 Text(vm.compressionPreset.title)
+                    .font(.system(.caption, design: .monospaced).weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 6).padding(.vertical, 3)
+            .background(RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.05)))
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .disabled(vm.isConverting)
+    }
+
+    @ViewBuilder
+    private var chdDiscModeChip: some View {
+        Menu {
+            ForEach(ChdDiscMode.allCases) { mode in
+                Button {
+                    vm.chdDiscMode = mode
+                } label: {
+                    HStack {
+                        Text(mode.label)
+                        if mode == vm.chdDiscMode { Image(systemName: "checkmark") }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: "opticaldisc").font(.system(size: 10)).foregroundStyle(.secondary)
+                Text(vm.chdDiscMode.label)
                     .font(.system(.caption, design: .monospaced).weight(.semibold))
                     .foregroundStyle(.secondary)
             }
