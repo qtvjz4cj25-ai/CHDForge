@@ -156,6 +156,9 @@ struct ContentView: View {
         .sheet(isPresented: $vm.showSetupWizard) {
             SetupWizardView(onDismiss: { vm.showSetupWizard = false })
         }
+        .sheet(isPresented: $vm.showCredits) {
+            CreditsView(onDismiss: { vm.showCredits = false })
+        }
         .sheet(isPresented: $vm.showArtworkScraper) {
             ArtworkScraperView().environmentObject(vm)
         }
@@ -224,6 +227,19 @@ private struct SidebarView: View {
                     vm.showSetupWizard = true
                 } label: {
                     Label("Setup", systemImage: "wrench.and.screwdriver")
+                        .font(.caption)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+
+                Divider().frame(height: 20)
+
+                Button {
+                    vm.showCredits = true
+                } label: {
+                    Label("Credits", systemImage: "heart")
                         .font(.caption)
                 }
                 .buttonStyle(.plain)

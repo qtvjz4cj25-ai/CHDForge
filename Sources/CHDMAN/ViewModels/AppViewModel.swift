@@ -54,6 +54,7 @@ final class AppViewModel: ObservableObject {
     @AppStorage("hasCompletedSetup") var hasCompletedSetup: Bool = false
     @Published var showSetupWizard: Bool = false
     @Published var showArtworkScraper: Bool = false
+    @Published var showCredits: Bool = false
 
     // MARK: - ScreenScraper credentials
     @AppStorage("ssUsername") var ssUsername: String = ""
