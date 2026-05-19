@@ -685,7 +685,10 @@ private struct DetailView: View {
                 }
             }
         } label: {
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
+                Text("Compression:")
+                    .font(.system(.caption2))
+                    .foregroundStyle(.tertiary)
                 Image(systemName: "shippingbox.circle").font(.system(size: 10)).foregroundStyle(.secondary)
                 Text(vm.compressionPreset.title)
                     .font(.system(.caption, design: .monospaced).weight(.semibold))
@@ -713,7 +716,10 @@ private struct DetailView: View {
                 }
             }
         } label: {
-            HStack(spacing: 5) {
+            HStack(spacing: 4) {
+                Text("Disc:")
+                    .font(.system(.caption2))
+                    .foregroundStyle(.tertiary)
                 Image(systemName: "opticaldisc").font(.system(size: 10)).foregroundStyle(.secondary)
                 Text(vm.chdDiscMode.label)
                     .font(.system(.caption, design: .monospaced).weight(.semibold))
