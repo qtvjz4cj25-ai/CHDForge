@@ -28,7 +28,7 @@ enum ScreenScraperError: LocalizedError {
 struct ScreenScraperClient {
 
     private let baseURL = "https://www.screenscraper.fr/api2"
-    private let softName = "CHDForge"
+    private let softName = "RetroForge"
     // Developer credentials — register at screenscraper.fr/forumsujets.php?topic=devapi
     private let devID       = ""   // leave blank; users can register their own
     private let devPassword = ""

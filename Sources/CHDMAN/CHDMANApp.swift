@@ -11,7 +11,7 @@ struct CHDMANApp: App {
     }
 
     var body: some Scene {
-        Window("CHDForge", id: "main") {
+        Window("RetroForge", id: "main") {
             ContentView()
                 .environmentObject(viewModel)
                 .frame(minWidth: 960, minHeight: 640)

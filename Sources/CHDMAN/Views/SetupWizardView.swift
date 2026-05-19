@@ -104,7 +104,7 @@ struct SetupWizardView: View {
                 Image(systemName: "wrench.and.screwdriver.fill")
                     .font(.system(size: 36))
                     .foregroundStyle(Color.accentColor)
-                Text("Welcome to CHDForge")
+                Text("Welcome to RetroForge")
                     .font(.title2.weight(.bold))
                 Text("Let's check which tools are installed and install any that are missing.")
                     .font(.subheadline)

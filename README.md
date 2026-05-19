@@ -1,4 +1,4 @@
-# CHDForge — Batch ROM & Disc Image Converter
+# RetroForge — Batch ROM & Disc Image Converter
 
 A macOS app for batch converting disc images and ROM archives across multiple emulator formats.
 
@@ -54,7 +54,7 @@ A macOS app for batch converting disc images and ROM archives across multiple em
 
 ### Setup Wizard (Recommended)
 
-CHDForge includes a built-in **Setup Wizard** that runs automatically on first launch. It scans for each tool, shows what's missing, and lets you install everything with a single click — no terminal needed for most tools.
+RetroForge includes a built-in **Setup Wizard** that runs automatically on first launch. It scans for each tool, shows what's missing, and lets you install everything with a single click — no terminal needed for most tools.
 
 You can reopen the wizard any time from **Settings → Open Wizard**.
 
@@ -119,7 +119,7 @@ Then install dolphin-tool:
 ```bash
 npm i -g dolphin-tool
 ```
-> **Note:** CHDForge auto-detects the native binary inside node_modules. If it can't find it, open Settings and paste the path to the binary. Run `npm root -g` in Terminal to find where npm installs global packages.
+> **Note:** RetroForge auto-detects the native binary inside node_modules. If it can't find it, open Settings and paste the path to the binary. Run `npm root -g` in Terminal to find where npm installs global packages.
 
 Alternatively, install [Dolphin Emulator](https://dolphin-emu.org/) — dolphin-tool is bundled inside the app.
 
@@ -143,7 +143,7 @@ Then install nsz:
 ```bash
 pip3 install nsz
 ```
-CHDForge auto-detects nsz in common pip install locations. If it can't find it, run `which nsz` in Terminal and paste the result into **Settings → nsz Path**.
+RetroForge auto-detects nsz in common pip install locations. If it can't find it, run `which nsz` in Terminal and paste the result into **Settings → nsz Path**.
 
 ---
 
@@ -172,7 +172,7 @@ Enter your password when prompted. This copies `wit` and `wwt` to `/usr/local/bi
 ```bash
 ls /usr/local/bin/wit
 ```
-If that file exists, CHDForge will find and use it automatically — no further setup needed.
+If that file exists, RetroForge will find and use it automatically — no further setup needed.
 
 **If macOS blocks it** when a conversion actually runs (you see "cannot be opened because the developer cannot be verified"), go to **System Settings → Privacy & Security** and click **Allow Anyway** next to wit.
 
@@ -196,7 +196,7 @@ Repackinator is **not on Homebrew**. Download the macOS binary from GitHub:
 
 Download the `Repackinator-osx-arm64.tar` (Apple Silicon) or `Repackinator-osx-x64.tar` (Intel) archive, extract it, and move the `repackinator` binary somewhere permanent (e.g. `~/Applications/Repackinator/repackinator`). Then set the path in **Settings → Repackinator Path**.
 
-> **Note:** After extracting, macOS may not mark the binary as executable. CHDForge will automatically `chmod +x` it on first use, but if you run it manually from Terminal first, run `chmod +x repackinator` in the folder where it lives.
+> **Note:** After extracting, macOS may not mark the binary as executable. RetroForge will automatically `chmod +x` it on first use, but if you run it manually from Terminal first, run `chmod +x repackinator` in the folder where it lives.
 
 **If macOS blocks it** (Gatekeeper), go to **System Settings → Privacy & Security** and click **Allow Anyway** next to Repackinator, then try running the conversion again.
 
@@ -231,7 +231,7 @@ Test it:
 
 You should see usage output. Then set the path in **Settings → makeps3iso Path**.
 
-> **Usage:** Point CHDForge at the folder containing your PS3 game folders (directories that have `PS3_GAME/PARAM.SFO` inside). CHDForge scans for those automatically when you select the makeps3iso tool.
+> **Usage:** Point RetroForge at the folder containing your PS3 game folders (directories that have `PS3_GAME/PARAM.SFO` inside). RetroForge scans for those automatically when you select the makeps3iso tool.
 
 **If macOS blocks it** (Gatekeeper), go to **System Settings → Privacy & Security** and click **Allow Anyway** next to makeps3iso.
 
@@ -249,7 +249,7 @@ make
 ```
 Move the resulting `extract-xiso` binary somewhere permanent and set the path in **Settings → extract-xiso Path**.
 
-> **Usage — Create:** Point CHDForge at your Xbox games folder. It scans for subdirectories containing `default.xbe` (the Xbox executable) and converts each to an XISO `.iso` file.
+> **Usage — Create:** Point RetroForge at your Xbox games folder. It scans for subdirectories containing `default.xbe` (the Xbox executable) and converts each to an XISO `.iso` file.
 >
 > **Usage — Extract:** Scan for `.iso` files and extract each to a matching directory.
 
@@ -257,7 +257,7 @@ Move the resulting `extract-xiso` binary somewhere permanent and set the path in
 
 ### Verify Everything Is Working
 
-After installing, launch CHDForge. The **Setup Wizard** will check each tool automatically. You can also select a tool in the sidebar — the app checks for its binary and shows an alert with instructions if it can't find it.
+After installing, launch RetroForge. The **Setup Wizard** will check each tool automatically. You can also select a tool in the sidebar — the app checks for its binary and shows an alert with instructions if it can't find it.
 
 ---
 
@@ -317,12 +317,12 @@ No compression presets — extract-xiso produces verbatim Xbox ISO images.
 
 ## Running the App (Gatekeeper)
 
-Since CHDForge is not signed with an Apple Developer ID, macOS will block it on first launch.
+Since RetroForge is not signed with an Apple Developer ID, macOS will block it on first launch.
 
-1. Right-click `CHDForge.app` → **Open**
+1. Right-click `RetroForge.app` → **Open**
 2. macOS says it can't be verified — click **Open** if the option appears, or dismiss the dialog
 3. Go to **System Settings → Privacy & Security**
-4. Scroll down to find CHDForge listed with an **Open Anyway** button — click it
+4. Scroll down to find RetroForge listed with an **Open Anyway** button — click it
 5. Launch the app again and authenticate with your admin password when prompted
 
 After this one-time setup, the app opens normally.
@@ -362,7 +362,7 @@ Adding a new conversion tool:
 
 ## Support
 
-If you find CHDForge useful, consider buying me a coffee:
+If you find RetroForge useful, consider buying me a coffee:
 
 [![Ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/ninjapiraterobo)
 

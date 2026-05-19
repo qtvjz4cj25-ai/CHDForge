@@ -79,7 +79,7 @@ struct CreditsView: View {
                     .foregroundStyle(.pink)
                 Text("Built on the shoulders of giants")
                     .font(.title2.bold())
-                Text("CHDForge is a front-end. All the real work is done by these outstanding open-source tools and their creators.")
+                Text("RetroForge is a front-end. All the real work is done by these outstanding open-source tools and their creators.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -107,7 +107,7 @@ struct CreditsView: View {
 
             // Footer
             HStack {
-                Text("CHDForge is not affiliated with any of the above projects.")
+                Text("RetroForge is not affiliated with any of the above projects.")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 Spacer()
