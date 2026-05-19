@@ -1,6 +1,6 @@
 name: Build and Release
 
-# Triggers when you push a tag like v1.0, v2.1, etc.
+# Triggers when you push a tag like v3.0, v3.1, etc.
 on:
   push:
     tags:
@@ -28,17 +28,17 @@ jobs:
       # 4. Create .app bundle and ad-hoc sign
       - name: Package
         run: |
-          APP="CHDForge.app/Contents"
+          APP="RetroForge.app/Contents"
           mkdir -p "$APP/MacOS" "$APP/Resources"
-          cp .build/release/CHDMAN "$APP/MacOS/CHDForge"
+          cp .build/release/CHDMAN "$APP/MacOS/RetroForge"
           cp Sources/CHDMAN/Resources/Info.plist "$APP/Info.plist"
           cp Sources/CHDMAN/Resources/AppIcon.icns "$APP/Resources/AppIcon.icns"
-          codesign --force --sign - CHDForge.app
-          ditto -c -k --keepParent CHDForge.app CHDForge.app.zip
+          codesign --force --sign - RetroForge.app
+          ditto -c -k --keepParent RetroForge.app RetroForge.app.zip
 
       # 5. Create a GitHub Release with the zip attached
       - name: Create Release
         uses: softprops/action-gh-release@v3
         with:
-          files: CHDForge.app.zip
+          files: RetroForge.app.zip
           generate_release_notes: true
