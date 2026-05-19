@@ -348,18 +348,38 @@ private struct DetailView: View {
 
             // NSZ extract key warning
             if vm.selectedTool == .nsz && vm.appMode == .extract {
+                let keysSet = !vm.customNszKeysPath.isEmpty
                 HStack(spacing: 8) {
-                    Image(systemName: "key.fill")
-                        .foregroundStyle(.orange)
+                    Image(systemName: keysSet ? "key.fill" : "key.slash.fill")
+                        .foregroundStyle(keysSet ? .green : .orange)
                         .font(.caption)
-                    Text("NSZ/XCZ extraction requires **prod.keys** (and title.keys) dumped from your Switch — place them in `~/.switch/` or set the path via `--keys` in the nsz docs.")
+                    if keysSet {
+                        Text("prod.keys configured — extraction should work.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("NSZ/XCZ extraction requires **prod.keys** dumped from your own Switch. Place them in `~/.switch/prod.keys` (auto-detected) or set the path in **Settings → Switch Keys**.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if !keysSet {
+                        Button("Open Settings") {
+                            if #available(macOS 14.0, *) {
+                                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+                            } else {
+                                NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+                            }
+                        }
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Color.accentColor)
+                    }
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.orange.opacity(0.08))
+                .background(keysSet ? Color.green.opacity(0.07) : Color.orange.opacity(0.08))
             }
 
             Divider().overlay(Color.primary.opacity(0.08))

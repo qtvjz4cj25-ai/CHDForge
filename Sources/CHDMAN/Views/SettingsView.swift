@@ -6,6 +6,7 @@ struct SettingsView: View {
     @State private var dolphinToolDraftPath: String = ""
     @State private var maxcsoDraftPath: String = ""
     @State private var nszDraftPath: String = ""
+    @State private var nszKeysDraftPath: String = ""
     @State private var sevenZipDraftPath: String = ""
     @State private var witDraftPath: String = ""
     @State private var repackinatorDraftPath: String = ""
@@ -255,6 +256,61 @@ struct SettingsView: View {
                 .padding(.vertical, 4)
             } header: {
                 Label("nsz Executable", systemImage: "rectangle.stack")
+            }
+
+            Section {
+                VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Switch prod.keys path")
+                            .font(.system(.body, design: .rounded).weight(.semibold))
+                        Text("Required for NSZ/XCZ extraction. Dump prod.keys from your own Switch using Lockpick_RCM or similar. Leave blank to use the default location (~/.switch/prod.keys).")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    HStack {
+                        TextField("~/.switch/prod.keys", text: $nszKeysDraftPath)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.body, design: .monospaced))
+                        Button("Browse…") {
+                            let panel = NSOpenPanel()
+                            panel.canChooseFiles = true
+                            panel.canChooseDirectories = false
+                            panel.allowsMultipleSelection = false
+                            panel.message = "Select your prod.keys file"
+                            if panel.runModal() == .OK, let url = panel.url {
+                                nszKeysDraftPath = url.path
+                            }
+                        }
+                    }
+
+                    HStack {
+                        Button("Save") {
+                            vm.customNszKeysPath = nszKeysDraftPath
+                        }
+                        .buttonStyle(.borderedProminent)
+
+                        Button("Clear") {
+                            nszKeysDraftPath = ""
+                            vm.customNszKeysPath = ""
+                        }
+
+                        Spacer()
+
+                        if !vm.customNszKeysPath.isEmpty {
+                            Label("Saved", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                                .font(.caption)
+                        } else {
+                            Label("Default location (~/.switch/)", systemImage: "folder")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                        }
+                    }
+                }
+                .padding(.vertical, 4)
+            } header: {
+                Label("Switch Keys (NSZ Extraction)", systemImage: "key.fill")
             }
 
             Section {
@@ -882,6 +938,7 @@ struct SettingsView: View {
             dolphinToolDraftPath = vm.customDolphinToolPath
             maxcsoDraftPath = vm.customMaxcsoPath
             nszDraftPath = vm.customNszPath
+            nszKeysDraftPath = vm.customNszKeysPath
             sevenZipDraftPath = vm.customSevenZipPath
             witDraftPath = vm.customWitPath
             repackinatorDraftPath = vm.customRepackinatorPath

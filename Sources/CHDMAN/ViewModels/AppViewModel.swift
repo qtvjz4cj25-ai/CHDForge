@@ -64,6 +64,7 @@ final class AppViewModel: ObservableObject {
     @AppStorage("customDolphinToolPath") var customDolphinToolPath: String = ""
     @AppStorage("customMaxcsoPath") var customMaxcsoPath: String = ""
     @AppStorage("customNszPath") var customNszPath: String = ""
+    @AppStorage("customNszKeysPath") var customNszKeysPath: String = ""
     @AppStorage("customSevenZipPath") var customSevenZipPath: String = ""
     @AppStorage("customWitPath") var customWitPath: String = ""
     @AppStorage("customRepackinatorPath") var customRepackinatorPath: String = ""
@@ -489,6 +490,7 @@ final class AppViewModel: ObservableObject {
                 nszPath: nszPath,
                 compressionPreset: compressionPreset,
                 mode: appMode,
+                keysPath: customNszKeysPath.isEmpty ? nil : customNszKeysPath,
                 concurrency: concurrency,
                 jobs: jobs,
                 logStore: logStore,

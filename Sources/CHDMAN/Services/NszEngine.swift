@@ -5,16 +5,22 @@ import Foundation
 ///
 /// nsz uses `-o` for the output *directory* (not file), so we extract the
 /// parent directory from the snapshot's outputPath.
+///
+/// Extraction (NSZ/XCZ → NSP/XCI) requires Switch key files (prod.keys).
+/// Pass `keysPath` to forward them via `--keys`; if nil, nsz falls back to
+/// its default search locations (~/.switch/prod.keys etc.).
 final class NszEngine: BatchEngine {
 
     let nszPath: String
     let compressionPreset: CompressionPreset
     let mode: AppMode
+    let keysPath: String?
 
     init(
         nszPath: String,
         compressionPreset: CompressionPreset,
         mode: AppMode,
+        keysPath: String? = nil,
         concurrency: Int,
         jobs: [ConversionJob],
         logStore: LogStore,
@@ -23,6 +29,7 @@ final class NszEngine: BatchEngine {
         self.nszPath = nszPath
         self.compressionPreset = compressionPreset
         self.mode = mode
+        self.keysPath = keysPath
         super.init(concurrency: concurrency, jobs: jobs, logStore: logStore, deleteSource: deleteSource)
     }
 
@@ -48,7 +55,7 @@ final class NszEngine: BatchEngine {
     // MARK: - Build arguments
 
     private func buildArgs(snapshot: JobSnapshot) -> [String] {
-        // nsz -C|-D [-l LEVEL] [-t THREADS] -o OUTPUT_DIR input
+        // nsz -C|-D [--keys PATH] [-l LEVEL] [-t THREADS] -o OUTPUT_DIR input
         let outputDir = URL(fileURLWithPath: snapshot.outputPath)
             .deletingLastPathComponent().path
 
@@ -60,6 +67,10 @@ final class NszEngine: BatchEngine {
             args += compressionPreset.nszArguments
         case .extract:
             args.append("-D")
+            // Keys are required for decryption; pass explicitly if provided.
+            if let keys = keysPath {
+                args += ["--keys", keys]
+            }
         }
 
         args += ["-t", "1", "-o", outputDir, snapshot.path]
