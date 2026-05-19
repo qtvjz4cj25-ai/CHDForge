@@ -270,6 +270,14 @@ private struct SidebarView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
             }
+
+            if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+                Text("v\(version)")
+                    .font(.system(size: 9, design: .monospaced))
+                    .foregroundStyle(.quaternary)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 4)
+            }
         }
     }
 
@@ -337,6 +345,22 @@ private struct DetailView: View {
             .padding(.top, 14)
             .padding(.bottom, 10)
             .background(headerBackground)
+
+            // NSZ extract key warning
+            if vm.selectedTool == .nsz && vm.appMode == .extract {
+                HStack(spacing: 8) {
+                    Image(systemName: "key.fill")
+                        .foregroundStyle(.orange)
+                        .font(.caption)
+                    Text("NSZ/XCZ extraction requires **prod.keys** (and title.keys) dumped from your Switch — place them in `~/.switch/` or set the path via `--keys` in the nsz docs.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.08))
+            }
 
             Divider().overlay(Color.primary.opacity(0.08))
 
